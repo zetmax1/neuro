@@ -203,14 +203,18 @@ const Course = () => {
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-300">
               <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Take Assessment
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Video className="w-4 h-4 mr-2" />
-                  Ask AI Tutor
-                </Button>
+                <Link to="/assessment?type=topic&topic=data-structures">
+                  <Button variant="outline" className="w-full justify-start">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Take Assessment
+                  </Button>
+                </Link>
+                <Link to="/tutor">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Video className="w-4 h-4 mr-2" />
+                    Ask AI Tutor
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
