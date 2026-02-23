@@ -23,12 +23,12 @@ const Landing = () => {
                 <Brain className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                Ready to Transform Your Learning?
+                Ready to transform your learning?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                 Join thousands of learners using knowledge-based intelligence to master new skills faster.
               </p>
-              <Link to="/dashboard">
+              <Link to="/auth">
                 <Button variant="hero" size="xl" className="group">
                   Get Started Now
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

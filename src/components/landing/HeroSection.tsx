@@ -5,52 +5,52 @@ import { ArrowRight, Sparkles, Target, Brain } from "lucide-react";
 const HeroSection = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary/50 to-background" />
-      <div className="absolute top-20 right-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse-soft" />
-      <div className="absolute bottom-20 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse-soft delay-300" />
+      {/* Warm organic background */}
+      <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+      <div className="absolute top-20 right-1/4 w-80 h-80 bg-primary/4 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-1/4 w-96 h-96 bg-accent/4 rounded-full blur-3xl" />
       
-      {/* Floating Elements */}
+      {/* Subtle decorative dots */}
       <div className="absolute top-1/4 right-[15%] animate-float hidden lg:block">
-        <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-lg">
-          <Brain className="w-8 h-8 text-white" />
+        <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-md opacity-90">
+          <Brain className="w-7 h-7 text-white" />
         </div>
       </div>
       <div className="absolute bottom-1/3 left-[10%] animate-float delay-200 hidden lg:block">
-        <div className="w-14 h-14 rounded-2xl gradient-accent flex items-center justify-center shadow-lg">
-          <Target className="w-7 h-7 text-white" />
+        <div className="w-12 h-12 rounded-2xl gradient-accent flex items-center justify-center shadow-md opacity-90">
+          <Target className="w-6 h-6 text-white" />
         </div>
       </div>
-      <div className="absolute top-1/3 left-[20%] animate-float delay-500 hidden lg:block">
-        <div className="w-12 h-12 rounded-2xl gradient-warm flex items-center justify-center shadow-lg">
-          <Sparkles className="w-6 h-6 text-white" />
+      <div className="absolute top-1/3 left-[22%] animate-float delay-500 hidden lg:block">
+        <div className="w-10 h-10 rounded-xl gradient-warm flex items-center justify-center shadow-md opacity-90">
+          <Sparkles className="w-5 h-5 text-white" />
         </div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/8 text-primary text-sm font-medium mb-8 animate-fade-in border border-primary/10">
             <Sparkles className="w-4 h-4" />
             <span>AI-Powered Personalized Learning</span>
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-foreground mb-6 animate-slide-up">
-            Learn Smarter with{" "}
-            <span className="text-gradient font-display">Knowledge-Based</span>{" "}
-            Intelligence
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up leading-[1.1]">
+            Learn smarter with{" "}
+            <span className="font-display text-primary">knowledge-based</span>{" "}
+            intelligence
           </h1>
 
           {/* Subheading */}
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up delay-100">
-            An adaptive learning system that understands your unique knowledge state, 
-            creates personalized pathways, and guides you to mastery through intelligent tutoring.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 animate-slide-up delay-100 leading-relaxed">
+            An adaptive system that understands your unique knowledge state, 
+            creates personalized pathways, and guides you to mastery.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up delay-200">
-            <Link to="/dashboard">
+            <Link to="/auth">
               <Button variant="hero" size="xl" className="group">
                 Start Learning
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

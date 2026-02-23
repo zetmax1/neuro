@@ -1,11 +1,14 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Search, User, Menu } from "lucide-react";
+import { Brain, Search, User, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuthContext();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -13,8 +16,14 @@ const Header = () => {
     { path: "/dashboard", label: "Dashboard" },
     { path: "/learning-path", label: "Learning Path" },
     { path: "/courses", label: "Courses" },
+    { path: "/search", label: "Search" },
     { path: "/tutor", label: "AI Tutor" },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -49,12 +58,22 @@ const Header = () => {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-muted-foreground">
-              <Search className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground">
-              <User className="w-5 h-5" />
-            </Button>
+            {user ? (
+              <>
+                <Link to="/profile">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground">
+                    <User className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleLogout} title="Sign out">
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button variant="default" size="sm">Sign In</Button>
+              </Link>
+            )}
             <Button 
               variant="ghost" 
               size="icon" 
