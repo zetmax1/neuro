@@ -4,41 +4,38 @@ interface ProgressCardProps {
   title: string;
   value: number;
   maxValue: number;
-  color: "primary" | "accent" | "success" | "warning";
   subtitle?: string;
+  // We can keep a subtle 'highlight' option if you want one card to stand out, 
+  // but by default they should be unified.
+  variant?: "default" | "highlight"; 
 }
 
-const colorClasses = {
-  primary: "bg-primary",
-  accent: "bg-accent",
-  success: "bg-success",
-  warning: "bg-warning",
-};
-
-const bgColorClasses = {
-  primary: "bg-primary/10",
-  accent: "bg-accent/10",
-  success: "bg-success/10",
-  warning: "bg-warning/10",
-};
-
-const ProgressCard = ({ title, value, maxValue, color, subtitle }: ProgressCardProps) => {
+const ProgressCard = ({ title, value, maxValue, subtitle, variant = "default" }: ProgressCardProps) => {
   const percentage = Math.round((value / maxValue) * 100);
+  const isHighlight = variant === "highlight";
 
   return (
-    <div className="p-6 rounded-2xl bg-card border border-border card-hover">
+    <div className={cn(
+      "p-6 rounded-2xl bg-card border transition-colors duration-200",
+      isHighlight ? "border-primary/50 shadow-sm" : "border-border hover:border-foreground/20"
+    )}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-foreground">{title}</h3>
-          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+          <h3 className="font-semibold text-foreground tracking-tight">{title}</h3>
+          {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
-        <span className={cn("text-2xl font-bold", `text-${color}`)}>
+        <span className="text-2xl font-bold text-foreground">
           {percentage}%
         </span>
       </div>
-      <div className={cn("h-2 rounded-full overflow-hidden", bgColorClasses[color])}>
+      
+      {/* Unified Progress Bar */}
+      <div className="h-2 rounded-full overflow-hidden bg-secondary">
         <div
-          className={cn("h-full rounded-full transition-all duration-500 ease-out", colorClasses[color])}
+          className={cn(
+            "h-full rounded-full transition-all duration-700 ease-out",
+            isHighlight ? "bg-primary" : "bg-foreground" 
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>

@@ -59,9 +59,9 @@ const Tutor = () => {
   };
 
   const welcomeMessage = {
-    socratic: "I'm your Socratic tutor! I won't give you direct answers - instead, I'll guide you to discover solutions through thoughtful questions. Ready to think deeply? 🤔",
-    visual: "I'm your Visual Explainer! I'll create diagrams, flowcharts, and visual representations to help you understand concepts. Let's make learning visual! 📊",
-    "mistake-analysis": "I'm your Learning Analyst! I track your mistake patterns and provide targeted help. Don't worry about errors - they're learning opportunities! 🔍",
+    socratic: "I'm your socratic tutor! I won't give you direct answers - instead, I'll guide you to discover solutions through thoughtful questions. Ready to think deeply? 🤔",
+    visual: "I'm your visual explainer! I'll create diagrams, flowcharts, and visual representations to help you understand concepts. Let's make learning visual! 📊",
+    "mistake-analysis": "I'm your learning analyst! I track your mistake patterns and provide targeted help. Don't worry about errors - they're learning opportunities! 🔍",
     "study-buddy": "Hey study buddy! 🎉 I'm here to make learning fun! We'll quiz each other, tackle challenges together, and celebrate your wins. Let's go! 🚀",
     default: "Hello! I'm your intelligent learning assistant. I can help you understand concepts, provide hints, and suggest what to review. What would you like to learn?",
   };
@@ -72,7 +72,7 @@ const Tutor = () => {
       
       <main className="flex-1 container mx-auto px-4 py-6 flex flex-col max-h-[calc(100vh-4rem)]">
         <div className="mb-6 animate-slide-up">
-          <h1 className="text-2xl font-bold text-foreground mb-1">AI Tutor</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-1">AI tutor</h1>
           <p className="text-muted-foreground text-sm">
             Unique learning modes tailored to your style
           </p>

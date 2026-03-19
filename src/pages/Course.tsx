@@ -19,21 +19,21 @@ import { cn } from "@/lib/utils";
 
 const Course = () => {
   const topic = {
-    title: "Trees & Binary Trees",
-    module: "Data Structures",
+    title: "Trees & binary trees",
+    module: "Data structures",
     description: "Learn about hierarchical data structures including binary trees, BSTs, and tree traversal algorithms.",
     progress: 65,
     estimatedTime: "2.5 hours",
     difficulty: "intermediate",
     materials: [
-      { type: "video", title: "Introduction to Trees", duration: "12 min", completed: true },
-      { type: "text", title: "Tree Terminology & Properties", duration: "8 min", completed: true },
-      { type: "video", title: "Binary Tree Implementation", duration: "18 min", completed: true },
-      { type: "text", title: "Tree Traversal Methods", duration: "15 min", completed: false },
-      { type: "pdf", title: "Practice Problems", duration: "20 min", completed: false },
+      { type: "video", title: "Introduction to trees", duration: "12 min", completed: true },
+      { type: "text", title: "Tree terminology & properties", duration: "8 min", completed: true },
+      { type: "video", title: "Binary tree implementation", duration: "18 min", completed: true },
+      { type: "text", title: "Tree traversal methods", duration: "15 min", completed: false },
+      { type: "pdf", title: "Practice problems", duration: "20 min", completed: false },
     ],
-    prerequisites: ["Arrays & Lists", "Stacks & Queues"],
-    relatedTopics: ["Graph Fundamentals", "Heap Data Structure", "Binary Search Trees"],
+    prerequisites: ["Arrays & lists", "Stacks & queues"],
+    relatedTopics: ["Graph fundamentals", "Heap data structure", "Binary search trees"],
     whyThisTopic: "Trees are fundamental for understanding more complex data structures like graphs and heaps. They're essential for efficient searching, sorting, and hierarchical data representation.",
   };
 
@@ -50,7 +50,7 @@ const Course = () => {
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
           <Link to="/learning-path" className="hover:text-foreground transition-colors">
-            Learning Path
+            Learning path
           </Link>
           <ChevronRight className="w-4 h-4" />
           <span>{topic.module}</span>
@@ -107,7 +107,7 @@ const Course = () => {
 
             {/* Learning Materials */}
             <div className="animate-slide-up delay-200">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Learning Materials</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Learning materials</h2>
               <div className="space-y-3">
                 {topic.materials.map((material, index) => {
                   const Icon = materialIcons[material.type as keyof typeof materialIcons];
@@ -156,10 +156,10 @@ const Course = () => {
             <div className="flex items-center justify-between pt-6 border-t border-border animate-slide-up delay-300">
               <Button variant="outline">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Previous Topic
+                Previous topic
               </Button>
               <Button variant="hero">
-                Continue Learning
+                Continue learning
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -185,7 +185,7 @@ const Course = () => {
 
             {/* Related Topics */}
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-200">
-              <h3 className="font-semibold text-foreground mb-4">Related Topics</h3>
+              <h3 className="font-semibold text-foreground mb-4">Related topics</h3>
               <div className="space-y-2">
                 {topic.relatedTopics.map((related) => (
                   <button 
@@ -201,18 +201,18 @@ const Course = () => {
 
             {/* Quick Actions */}
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-300">
-              <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
+              <h3 className="font-semibold text-foreground mb-4">Quick actions</h3>
               <div className="space-y-2">
                 <Link to="/assessment?type=topic&topic=data-structures">
                   <Button variant="outline" className="w-full justify-start">
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Take Assessment
+                    Take assessment
                   </Button>
                 </Link>
                 <Link to="/tutor">
                   <Button variant="outline" className="w-full justify-start">
                     <Video className="w-4 h-4 mr-2" />
-                    Ask AI Tutor
+                    Ask AI tutor
                   </Button>
                 </Link>
               </div>

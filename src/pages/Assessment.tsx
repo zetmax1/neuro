@@ -70,7 +70,7 @@ const Assessment = () => {
                 <Brain className="w-10 h-10 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                {type === "placement" ? "Placement Assessment" : "Topic Assessment"}
+                {type === "placement" ? "Placement assessment" : "Topic assessment"}
               </h1>
               <p className="text-muted-foreground text-lg">
                 {currentTopic.title}
@@ -81,7 +81,7 @@ const Assessment = () => {
             <div className="grid md:grid-cols-3 gap-4 mb-8">
               <div className="p-6 rounded-2xl bg-card border border-border text-center">
                 <Target className="w-8 h-8 text-primary mx-auto mb-3" />
-                <h3 className="font-semibold text-foreground mb-1">Adaptive Difficulty</h3>
+                <h3 className="font-semibold text-foreground mb-1">Adaptive difficulty</h3>
                 <p className="text-sm text-muted-foreground">
                   Questions adjust based on your performance
                 </p>
@@ -95,7 +95,7 @@ const Assessment = () => {
               </div>
               <div className="p-6 rounded-2xl bg-card border border-border text-center">
                 <BarChart3 className="w-8 h-8 text-success mx-auto mb-3" />
-                <h3 className="font-semibold text-foreground mb-1">Personalized Path</h3>
+                <h3 className="font-semibold text-foreground mb-1">Personalized path</h3>
                 <p className="text-sm text-muted-foreground">
                   Get content matched to your level
                 </p>
@@ -104,7 +104,7 @@ const Assessment = () => {
 
             {/* What to Expect */}
             <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20">
-              <h3 className="font-semibold text-foreground mb-3">What to Expect</h3>
+              <h3 className="font-semibold text-foreground mb-3">What to expect</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
@@ -133,7 +133,7 @@ const Assessment = () => {
                 onClick={() => setState("quiz")}
                 className="px-12"
               >
-                Start Assessment
+                Start assessment
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
                 Take your time - there's no time limit per question

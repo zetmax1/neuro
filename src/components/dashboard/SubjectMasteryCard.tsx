@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 
 interface SubjectMasteryCardProps {
   subject: string;
@@ -6,7 +5,6 @@ interface SubjectMasteryCardProps {
   topics: number;
   completedTopics: number;
   icon: React.ReactNode;
-  color: string;
 }
 
 const SubjectMasteryCard = ({ 
@@ -14,59 +12,64 @@ const SubjectMasteryCard = ({
   mastery, 
   topics, 
   completedTopics, 
-  icon,
-  color 
+  icon 
 }: SubjectMasteryCardProps) => {
   // Calculate circle progress
   const circumference = 2 * Math.PI * 36;
   const strokeDashoffset = circumference - (mastery / 100) * circumference;
 
   return (
-    <div className="p-6 rounded-2xl bg-card border border-border card-hover">
-      <div className="flex items-center gap-4">
+    <div className="p-6 rounded-2xl bg-card border border-border transition-colors duration-200 hover:border-foreground/20 hover:bg-muted/30">
+      <div className="flex items-center gap-5">
+        
         {/* Circular Progress */}
-        <div className="relative w-20 h-20 shrink-0">
-          <svg className="w-20 h-20 transform -rotate-90">
+        <div className="relative w-16 h-16 shrink-0">
+          <svg className="w-16 h-16 transform -rotate-90">
+            {/* Background Track */}
             <circle
-              cx="40"
-              cy="40"
-              r="36"
+              cx="32"
+              cy="32"
+              r="28"
               stroke="currentColor"
-              strokeWidth="6"
+              strokeWidth="5"
               fill="none"
-              className="text-muted"
+              className="text-secondary"
             />
+            {/* Progress Track */}
             <circle
-              cx="40"
-              cy="40"
-              r="36"
-              stroke={color}
-              strokeWidth="6"
+              cx="32"
+              cy="32"
+              r="28"
+              stroke="currentColor"
+              strokeWidth="5"
               fill="none"
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-700 ease-out"
+              className="text-primary transition-all duration-1000 ease-out"
             />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center text-foreground">
             {icon}
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-1">{subject}</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground mb-1 truncate tracking-tight">{subject}</h3>
           <p className="text-sm text-muted-foreground mb-2">
             {completedTopics} of {topics} topics completed
           </p>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold" style={{ color }}>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-bold text-foreground">
               {mastery}%
             </span>
-            <span className="text-sm text-muted-foreground">mastery</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              mastery
+            </span>
           </div>
         </div>
+
       </div>
     </div>
   );

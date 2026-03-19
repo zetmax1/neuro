@@ -27,11 +27,11 @@ const masteryData = [
 ];
 
 const achievements = [
-  { title: "First Assessment", description: "Completed your first placement test", icon: Target, earned: true },
-  { title: "7-Day Streak", description: "Studied for 7 consecutive days", icon: Flame, earned: true },
-  { title: "Topic Master", description: "Achieved 90%+ mastery on a topic", icon: Award, earned: true },
-  { title: "Deep Diver", description: "Spent 10+ hours on a single subject", icon: BookOpen, earned: false },
-  { title: "Speed Learner", description: "Complete 5 topics in one day", icon: TrendingUp, earned: false },
+  { title: "First assessment", description: "Completed your first placement test", icon: Target, earned: true },
+  { title: "7-day streak", description: "Studied for 7 consecutive days", icon: Flame, earned: true },
+  { title: "Topic master", description: "Achieved 90%+ mastery on a topic", icon: Award, earned: true },
+  { title: "Deep diver", description: "Spent 10+ hours on a single subject", icon: BookOpen, earned: false },
+  { title: "Speed learner", description: "Complete 5 topics in one day", icon: TrendingUp, earned: false },
 ];
 
 const recentHistory = [
@@ -75,7 +75,7 @@ const Profile = () => {
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-1" />
-            Sign Out
+            Sign out
           </Button>
         </div>
 
@@ -104,7 +104,7 @@ const Profile = () => {
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-200">
               <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
-                Subject Mastery
+                Subject mastery
               </h2>
               <div className="space-y-4">
                 {masteryData.map(s => (
@@ -134,7 +134,7 @@ const Profile = () => {
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-300">
               <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-accent" />
-                Weekly Activity
+                Weekly activity
               </h2>
               <div className="flex items-end gap-3 h-40">
                 {weeklyActivity.map(d => (
@@ -156,7 +156,7 @@ const Profile = () => {
             <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-400">
               <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-muted-foreground" />
-                Recent History
+                Recent history
               </h2>
               <div className="space-y-3">
                 {recentHistory.map((item, i) => (

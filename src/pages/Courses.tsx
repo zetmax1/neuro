@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 const courses = [
   {
     id: "cs-fundamentals",
-    title: "Computer Science Fundamentals",
+    title: "Computer science fundamentals",
     description: "Master the core concepts of programming, algorithms, and data structures.",
     icon: Code,
     color: "hsl(234, 89%, 58%)",
@@ -33,7 +33,7 @@ const courses = [
   },
   {
     id: "data-structures",
-    title: "Data Structures Mastery",
+    title: "Data structures mastery",
     description: "Deep dive into arrays, trees, graphs, hash tables, and more.",
     icon: Database,
     color: "hsl(172, 66%, 50%)",
@@ -45,7 +45,7 @@ const courses = [
   },
   {
     id: "machine-learning",
-    title: "Machine Learning Essentials",
+    title: "Machine learning essentials",
     description: "From linear regression to neural networks - understand ML fundamentals.",
     icon: BrainCircuit,
     color: "hsl(38, 92%, 50%)",
@@ -57,7 +57,7 @@ const courses = [
   },
   {
     id: "web-development",
-    title: "Modern Web Development",
+    title: "Modern web development",
     description: "Build responsive, accessible, and performant web applications.",
     icon: Globe,
     color: "hsl(199, 89%, 48%)",
@@ -69,7 +69,7 @@ const courses = [
   },
   {
     id: "ui-design",
-    title: "UI/UX Design Principles",
+    title: "UI/UX design principles",
     description: "Learn user-centered design, accessibility, and visual hierarchy.",
     icon: Palette,
     color: "hsl(340, 82%, 52%)",
@@ -90,7 +90,7 @@ const Courses = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8 animate-slide-up">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Explore Courses</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Explore courses</h1>
           <p className="text-muted-foreground">
             Discover personalized learning paths tailored to your knowledge level and goals.
           </p>

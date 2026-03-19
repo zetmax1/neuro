@@ -8,36 +8,36 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
 const knowledgeConcepts = [
-  { id: "binary-tree", title: "Binary Trees", category: "Data Structures", difficulty: "intermediate", description: "Hierarchical structure where each node has at most two children. Fundamental for search, sort, and expression parsing.", related: ["BST", "Tree Traversal", "Heap"], mastery: 72 },
-  { id: "bst", title: "Binary Search Trees", category: "Data Structures", difficulty: "intermediate", description: "A binary tree where left < parent < right. Enables O(log n) search, insert, and delete operations.", related: ["Binary Trees", "AVL Trees", "Red-Black Trees"], mastery: 58 },
-  { id: "hash-table", title: "Hash Tables", category: "Data Structures", difficulty: "intermediate", description: "Key-value storage using hash functions for near O(1) lookups. Handles collisions via chaining or open addressing.", related: ["Arrays", "Hash Functions", "Sets"], mastery: 45 },
-  { id: "dfs", title: "Depth-First Search", category: "Algorithms", difficulty: "intermediate", description: "Graph traversal exploring as far as possible along each branch before backtracking. Uses stack or recursion.", related: ["BFS", "Graph Traversal", "Recursion"], mastery: 65 },
-  { id: "bfs", title: "Breadth-First Search", category: "Algorithms", difficulty: "intermediate", description: "Graph traversal visiting all neighbors at current depth before moving deeper. Uses a queue.", related: ["DFS", "Shortest Path", "Graph Traversal"], mastery: 60 },
+  { id: "binary-tree", title: "Binary trees", category: "Data structures", difficulty: "intermediate", description: "Hierarchical structure where each node has at most two children. Fundamental for search, sort, and expression parsing.", related: ["BST", "Tree Traversal", "Heap"], mastery: 72 },
+  { id: "bst", title: "Binary search trees", category: "Data structures", difficulty: "intermediate", description: "A binary tree where left < parent < right. Enables O(log n) search, insert, and delete operations.", related: ["Binary Trees", "AVL Trees", "Red-Black Trees"], mastery: 58 },
+  { id: "hash-table", title: "Hash tables", category: "Data structures", difficulty: "intermediate", description: "Key-value storage using hash functions for near O(1) lookups. Handles collisions via chaining or open addressing.", related: ["Arrays", "Hash Functions", "Sets"], mastery: 45 },
+  { id: "dfs", title: "Depth-first search", category: "Algorithms", difficulty: "intermediate", description: "Graph traversal exploring as far as possible along each branch before backtracking. Uses stack or recursion.", related: ["BFS", "Graph Traversal", "Recursion"], mastery: 65 },
+  { id: "bfs", title: "Breadth-first search", category: "Algorithms", difficulty: "intermediate", description: "Graph traversal visiting all neighbors at current depth before moving deeper. Uses a queue.", related: ["DFS", "Shortest Path", "Graph Traversal"], mastery: 60 },
   { id: "quicksort", title: "Quicksort", category: "Algorithms", difficulty: "intermediate", description: "Divide-and-conquer sorting via pivot selection. Average O(n log n), widely used in practice.", related: ["Merge Sort", "Partition", "Divide and Conquer"], mastery: 80 },
-  { id: "dynamic-programming", title: "Dynamic Programming", category: "Algorithms", difficulty: "advanced", description: "Solving complex problems by breaking them into overlapping subproblems with optimal substructure.", related: ["Memoization", "Recursion", "Greedy Algorithms"], mastery: 30 },
+  { id: "dynamic-programming", title: "Dynamic programming", category: "Algorithms", difficulty: "advanced", description: "Solving complex problems by breaking them into overlapping subproblems with optimal substructure.", related: ["Memoization", "Recursion", "Greedy Algorithms"], mastery: 30 },
   { id: "recursion", title: "Recursion", category: "Fundamentals", difficulty: "beginner", description: "A function calling itself to solve smaller instances of the same problem. Base case prevents infinite loops.", related: ["Stack", "DFS", "Dynamic Programming"], mastery: 85 },
-  { id: "big-o", title: "Big O Notation", category: "Fundamentals", difficulty: "beginner", description: "Mathematical notation describing algorithm efficiency upper bounds as input grows.", related: ["Time Complexity", "Space Complexity", "Algorithm Analysis"], mastery: 90 },
-  { id: "linked-list", title: "Linked Lists", category: "Data Structures", difficulty: "beginner", description: "Linear collection where elements point to the next. Efficient insertions and deletions.", related: ["Arrays", "Stacks", "Queues"], mastery: 88 },
-  { id: "graph", title: "Graphs", category: "Data Structures", difficulty: "intermediate", description: "Nodes connected by edges representing relationships. Can be directed, undirected, weighted.", related: ["DFS", "BFS", "Trees", "Adjacency Matrix"], mastery: 50 },
-  { id: "neural-network", title: "Neural Networks", category: "Machine Learning", difficulty: "advanced", description: "Computing systems inspired by biological neurons. Layers of connected nodes learn patterns from data.", related: ["Backpropagation", "Activation Functions", "Deep Learning"], mastery: 15 },
+  { id: "big-o", title: "Big O notation", category: "Fundamentals", difficulty: "beginner", description: "Mathematical notation describing algorithm efficiency upper bounds as input grows.", related: ["Time Complexity", "Space Complexity", "Algorithm Analysis"], mastery: 90 },
+  { id: "linked-list", title: "Linked lists", category: "Data structures", difficulty: "beginner", description: "Linear collection where elements point to the next. Efficient insertions and deletions.", related: ["Arrays", "Stacks", "Queues"], mastery: 88 },
+  { id: "graph", title: "Graphs", category: "Data structures", difficulty: "intermediate", description: "Nodes connected by edges representing relationships. Can be directed, undirected, weighted.", related: ["DFS", "BFS", "Trees", "Adjacency Matrix"], mastery: 50 },
+  { id: "neural-network", title: "Neural networks", category: "Machine learning", difficulty: "advanced", description: "Computing systems inspired by biological neurons. Layers of connected nodes learn patterns from data.", related: ["Backpropagation", "Activation Functions", "Deep Learning"], mastery: 15 },
 ];
 
 const didYouMeanMap: Record<string, string> = {
-  "tree": "Binary Trees",
+  "tree": "Binary trees",
   "sort": "Quicksort",
   "search": "Depth-First Search",
-  "dp": "Dynamic Programming",
-  "array": "Linked Lists",
+  "dp": "Dynamic programming",
+  "array": "Linked lists",
   "graph": "Graphs",
-  "ml": "Neural Networks",
-  "ai": "Neural Networks",
+  "ml": "Neural networks",
+  "ai": "Neural networks",
   "stack": "Recursion",
-  "hash": "Hash Tables",
-  "bigo": "Big O Notation",
-  "complexity": "Big O Notation",
+  "hash": "Hash tables",
+  "bigo": "Big O notation",
+  "complexity": "Big O notation",
 };
 
-const trendingSearches = ["Dynamic Programming", "Graph Algorithms", "Binary Trees", "Recursion", "Big O"];
+const trendingSearches = ["Dynamic programming", "Graph algorithms", "Binary trees", "Recursion", "Big O"];
 
 const KnowledgeSearch = () => {
   const [query, setQuery] = useState("");
