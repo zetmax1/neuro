@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { QuizEngine, QuizResults } from "@/components/assessment/QuizEngine";
 import { ResultsSummary } from "@/components/assessment/ResultsSummary";
-import { dataStructuresQuestions, algorithmsQuestions } from "@/components/assessment/sampleQuestions";
+import { dataStructuresQuestions, algorithmsQuestions, loopsQuestions } from "@/components/assessment/sampleQuestions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Brain, Target, Clock, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -29,6 +29,11 @@ const Assessment = () => {
       title: "Algorithms",
       questions: algorithmsQuestions,
       description: "Sorting, Searching, Dynamic Programming, Graph Algorithms",
+    },
+    "loops": {
+      title: "Loops Basics",
+      questions: loopsQuestions,
+      description: "For loops, While loops, Nested loops, Break & Continue",
     },
   };
 

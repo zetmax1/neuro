@@ -14,6 +14,8 @@ import Assessment from "./pages/Assessment";
 import Auth from "./pages/Auth";
 import KnowledgeSearch from "./pages/KnowledgeSearch";
 import Profile from "./pages/Profile";
+import Session from "./pages/Session";
+import Mistakes from "./pages/Mistakes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/courses" element={<Courses />} />
             <Route path="/tutor" element={<Tutor />} />
             <Route path="/assessment" element={<Assessment />} />
+            <Route path="/session" element={<Session />} />
+            <Route path="/mistakes" element={<Mistakes />} />
             <Route path="/search" element={<KnowledgeSearch />} />
             <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

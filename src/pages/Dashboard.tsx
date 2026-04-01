@@ -2,6 +2,7 @@ import Header from "@/components/layout/Header";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 import RecommendationCard from "@/components/dashboard/RecommendationCard";
 import SubjectMasteryCard from "@/components/dashboard/SubjectMasteryCard";
+import MasteryHeatmap from "@/components/dashboard/MasteryHeatmap";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
@@ -13,7 +14,9 @@ import {
   TrendingUp,
   Calendar,
   Target,
-  Plus
+  Plus,
+  Play,
+  AlertCircle
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -63,13 +66,34 @@ const Dashboard = () => {
               Welcome back. Here's your personalized learning overview.
             </p>
           </div>
-          <div className="hidden sm:flex items-center text-sm font-medium text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-md border border-border/50">
-            <Calendar className="w-4 h-4 mr-2 opacity-70" />
-            {today}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="hidden sm:flex items-center text-sm font-medium text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-md border border-border/50">
+              <Calendar className="w-4 h-4 mr-2 opacity-70" />
+              {today}
+            </div>
+            {/* New: quick action buttons */}
+            <Link to="/session?topic=loops">
+              <Button variant="outline" size="sm" className="gap-1.5 h-9 text-sm">
+                <Play className="w-3.5 h-3.5" />
+                study session
+              </Button>
+            </Link>
+            <Link to="/mistakes">
+              <Button variant="outline" size="sm" className="gap-1.5 h-9 text-sm">
+                <AlertCircle className="w-3.5 h-3.5" />
+                review mistakes
+              </Button>
+            </Link>
+            <Link to="/learning-path">
+              <Button size="lg" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+                Continue Learning
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
 
-        {/* Quick Stats Grid - Updated to use the new variant system instead of rainbow colors */}
+        {/* Quick Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           <ProgressCard
             title="Overall Progress"
@@ -118,7 +142,6 @@ const Dashboard = () => {
                 <SubjectMasteryCard key={subject.subject} {...subject} />
               ))}
               
-              {/* Grounded "Explore More" Action Card */}
               <Link 
                 to="/courses" 
                 className="group p-6 rounded-2xl border border-border bg-card/50 hover:bg-secondary/50 hover:border-foreground/20 transition-all duration-200 flex flex-col items-center justify-center text-center h-full min-h-[160px]"
@@ -129,6 +152,11 @@ const Dashboard = () => {
                 <span className="font-medium text-foreground text-sm">Explore more subjects</span>
                 <span className="text-xs text-muted-foreground mt-1">Browse the catalog</span>
               </Link>
+            </div>
+
+            {/* Mastery Heatmap Integration */}
+            <div className="mt-10">
+              <MasteryHeatmap />
             </div>
           </div>
 
@@ -174,14 +202,12 @@ const Dashboard = () => {
               <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Recent activity</h2>
               <p className="text-sm text-muted-foreground">Your learning journey over the last 7 days</p>
             </div>
-            {/* Swapped the bright green for a professional primary accent */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
               <TrendingUp className="w-4 h-4" />
               <span>+12% improvement</span>
             </div>
           </div>
 
-          {/* Clean Activity Rows */}
           <div className="divide-y divide-border">
             {[
               { day: "Today", activity: "Completed Assessment: Sorting Algorithms", score: "92%", icon: Target },
@@ -197,7 +223,6 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">{item.day}</p>
                 </div>
                 <div className="flex items-center gap-3 text-right">
-                  {/* Scores and statuses now use neutral foregrounds or primary accents, avoiding random greens */}
                   {item.score && (
                     <span className="text-sm font-semibold text-foreground">{item.score}</span>
                   )}

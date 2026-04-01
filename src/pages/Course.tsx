@@ -12,7 +12,9 @@ import {
   Clock,
   BarChart3,
   Link as LinkIcon,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  Info
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,19 @@ const Course = () => {
     relatedTopics: ["Graph fundamentals", "Heap data structure", "Binary search trees"],
     whyThisTopic: "Trees are fundamental for understanding more complex data structures like graphs and heaps. They're essential for efficient searching, sorting, and hierarchical data representation.",
   };
+
+  // Mock prerequisite mastery scores (0–100).
+  // In a real system these come from the user's quiz history.
+  const prerequisiteMastery: Record<string, number> = {
+    "Arrays & lists":   82,
+    "Stacks & queues":  48, // below threshold — triggers warning
+  };
+  const MASTERY_THRESHOLD = 60;
+
+  const weakPrereqs = topic.prerequisites.filter(
+    (p) => (prerequisiteMastery[p] ?? 0) < MASTERY_THRESHOLD,
+  );
+  const allReady = weakPrereqs.length === 0;
 
   const materialIcons = {
     video: Video,
@@ -94,6 +109,58 @@ const Course = () => {
             {/* Progress Bar */}
             <div className="animate-slide-up delay-100">
               <Progress value={topic.progress} className="h-2" />
+            </div>
+
+            {/* Dependency Warning / Ready Banner */}
+            <div className="animate-slide-up delay-100">
+              {allReady ? (
+                <div className="flex items-center gap-3 p-3.5 rounded-xl border border-success/20 bg-success/6">
+                  <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">you're ready to start</p>
+                    <p className="text-xs text-muted-foreground">all prerequisites completed</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-warning/25 bg-warning/6 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        you may find this topic difficult
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        you haven't fully mastered:{" "}
+                        <span className="font-medium text-foreground">
+                          {weakPrereqs.join(", ")}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  {/* Mini mastery bars for weak prereqs */}
+                  <div className="space-y-1.5 pl-6">
+                    {weakPrereqs.map((p) => (
+                      <div key={p}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-muted-foreground">{p}</span>
+                          <span className="text-warning">{prerequisiteMastery[p] ?? 0}%</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-border overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-warning/70 transition-all duration-700"
+                            style={{ width: `${prerequisiteMastery[p] ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link to="/assessment?topic=data-structures" className="pl-6 inline-block">
+                    <span className="text-xs text-warning hover:text-warning/80 font-medium underline underline-offset-2 transition-colors">
+                      take a quick review →
+                    </span>
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Why This Topic */}

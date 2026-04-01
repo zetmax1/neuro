@@ -1,8 +1,8 @@
 import { Question } from "./QuizEngine";
 
-// Sample questions for Data Structures topic
+// ─── Data Structures ──────────────────────────────────────────────────────────
+
 export const dataStructuresQuestions: Question[] = [
-  // Easy questions
   {
     id: "ds-1",
     question: "What is the time complexity of accessing an element in an array by index?",
@@ -19,7 +19,7 @@ export const dataStructuresQuestions: Question[] = [
     correctAnswer: 1,
     difficulty: "easy",
     concept: "Stacks",
-    explanation: "A Stack follows LIFO - the last element added is the first one to be removed, like a stack of plates.",
+    explanation: "A Stack follows LIFO — the last element added is the first one to be removed, like a stack of plates.",
   },
   {
     id: "ds-3",
@@ -28,7 +28,7 @@ export const dataStructuresQuestions: Question[] = [
     correctAnswer: 0,
     difficulty: "easy",
     concept: "Queues",
-    explanation: "FIFO means First In, First Out - the first element added is the first one removed, like a line of people.",
+    explanation: "FIFO means First In, First Out — the first element added is the first one removed, like a line of people.",
   },
   {
     id: "ds-4",
@@ -39,8 +39,6 @@ export const dataStructuresQuestions: Question[] = [
     concept: "Linked Lists",
     explanation: "In a singly linked list, each node stores data and a reference (pointer) to the next node in the sequence.",
   },
-
-  // Medium questions
   {
     id: "ds-5",
     question: "What is the maximum number of children a node can have in a binary tree?",
@@ -48,7 +46,7 @@ export const dataStructuresQuestions: Question[] = [
     correctAnswer: 1,
     difficulty: "medium",
     concept: "Binary Trees",
-    explanation: "In a binary tree, each node can have at most 2 children - a left child and a right child.",
+    explanation: "In a binary tree, each node can have at most 2 children — a left child and a right child.",
   },
   {
     id: "ds-6",
@@ -86,8 +84,6 @@ export const dataStructuresQuestions: Question[] = [
     concept: "Linked Lists",
     explanation: "Sentinel (dummy) nodes simplify code by eliminating special cases for empty lists or operations at the boundaries.",
   },
-
-  // Hard questions
   {
     id: "ds-10",
     question: "What is the amortized time complexity of inserting n elements into a dynamic array?",
@@ -95,12 +91,17 @@ export const dataStructuresQuestions: Question[] = [
     correctAnswer: 0,
     difficulty: "hard",
     concept: "Dynamic Arrays",
-    explanation: "While individual insertions may take O(n) when resizing, the amortized cost over n insertions is O(n) total, or O(1) per insertion.",
+    explanation: "While individual insertions may take O(n) when resizing, the amortized cost over n insertions is O(n) total.",
   },
   {
     id: "ds-11",
     question: "In a Red-Black tree, what property ensures the tree remains balanced?",
-    options: ["All paths have same number of nodes", "No red node has red child, equal black nodes on paths", "Left subtree always smaller", "Height difference at most 1"],
+    options: [
+      "All paths have same number of nodes",
+      "No red node has red child, equal black nodes on paths",
+      "Left subtree always smaller",
+      "Height difference at most 1",
+    ],
     correctAnswer: 1,
     difficulty: "hard",
     concept: "Balanced Trees",
@@ -109,7 +110,12 @@ export const dataStructuresQuestions: Question[] = [
   {
     id: "ds-12",
     question: "What happens during a hash collision when using separate chaining?",
-    options: ["Element is rejected", "Element replaces existing", "Element added to linked list at bucket", "Hash function is recalculated"],
+    options: [
+      "Element is rejected",
+      "Element replaces existing",
+      "Element added to linked list at bucket",
+      "Hash function is recalculated",
+    ],
     correctAnswer: 2,
     difficulty: "hard",
     concept: "Hash Tables",
@@ -144,7 +150,8 @@ export const dataStructuresQuestions: Question[] = [
   },
 ];
 
-// Sample questions for Algorithms topic
+// ─── Algorithms ───────────────────────────────────────────────────────────────
+
 export const algorithmsQuestions: Question[] = [
   {
     id: "alg-1",
@@ -158,7 +165,7 @@ export const algorithmsQuestions: Question[] = [
   {
     id: "alg-2",
     question: "Which sorting algorithm has the best average-case time complexity?",
-    options: ["Bubble Sort - O(n²)", "Quick Sort - O(n log n)", "Selection Sort - O(n²)", "Insertion Sort - O(n²)"],
+    options: ["Bubble Sort – O(n²)", "Quick Sort – O(n log n)", "Selection Sort – O(n²)", "Insertion Sort – O(n²)"],
     correctAnswer: 1,
     difficulty: "easy",
     concept: "Sorting",
@@ -189,6 +196,141 @@ export const algorithmsQuestions: Question[] = [
     correctAnswer: 2,
     difficulty: "hard",
     concept: "Sorting",
-    explanation: "Quick Sort's worst case is O(n²) when the pivot consistently creates unbalanced partitions (e.g., already sorted array with poor pivot choice).",
+    explanation: "Quick Sort's worst case is O(n²) when the pivot consistently creates unbalanced partitions — e.g., already sorted array with a poor pivot choice.",
+    wrongAnswerHint: "O(n log n) is the average case, not the worst case.",
+  },
+];
+
+// ─── Loops Basics ─────────────────────────────────────────────────────────────
+
+export const loopsQuestions: Question[] = [
+  // ── For Loops ──
+  {
+    id: "loop-1",
+    question: "What is the output of the following code?",
+    codeSnippet: `for (let i = 0; i < 3; i++) {\n  console.log(i);\n}`,
+    options: ["0 1 2", "1 2 3", "0 1 2 3", "1 2"],
+    correctAnswer: 0,
+    difficulty: "easy",
+    concept: "For Loops",
+    explanation: "The loop starts at i=0, runs while i < 3, and increments by 1 each time. So it prints 0, 1, 2.",
+    wrongAnswerHint: "Remember: the condition is i < 3, not i <= 3.",
+  },
+  {
+    id: "loop-2",
+    question: "How many times does this loop execute?",
+    codeSnippet: `for (let i = 1; i <= 5; i++) {\n  // body\n}`,
+    options: ["4", "5", "6", "Infinite"],
+    correctAnswer: 1,
+    difficulty: "easy",
+    concept: "For Loops",
+    explanation: "The loop runs for i = 1, 2, 3, 4, 5 — exactly 5 times, because the condition is i <= 5.",
+  },
+  {
+    id: "loop-3",
+    question: "What does the following for…of loop iterate over?",
+    codeSnippet: `const fruits = ['apple', 'banana', 'cherry'];\nfor (const fruit of fruits) {\n  console.log(fruit);\n}`,
+    options: [
+      "Indices: 0, 1, 2",
+      "Values: 'apple', 'banana', 'cherry'",
+      "Key-value pairs",
+      "It throws an error",
+    ],
+    correctAnswer: 1,
+    difficulty: "easy",
+    concept: "For Loops",
+    explanation: "for…of iterates over the values of an iterable (like an array), not the indices.",
+    wrongAnswerHint: "for…in gives you keys/indices; for…of gives you values.",
+  },
+
+  // ── While Loops ──
+  {
+    id: "loop-4",
+    question: "What is the output of this while loop?",
+    codeSnippet: `let count = 5;\nwhile (count > 2) {\n  count--;\n}\nconsole.log(count);`,
+    options: ["5", "3", "2", "0"],
+    correctAnswer: 2,
+    difficulty: "easy",
+    concept: "While Loops",
+    explanation: "The loop runs while count > 2. It decrements: 5→4→3→2. When count reaches 2 the condition is false and loop stops. count is 2.",
+  },
+  {
+    id: "loop-5",
+    question: "What is the difference between a while loop and a do…while loop?",
+    options: [
+      "No difference",
+      "do…while always executes the body at least once",
+      "while always executes the body at least once",
+      "do…while is faster",
+    ],
+    correctAnswer: 1,
+    difficulty: "medium",
+    concept: "While Loops",
+    explanation: "A do…while loop checks the condition after executing the body, so the body always runs at least once even if the condition is initially false.",
+  },
+  {
+    id: "loop-6",
+    question: "Which of these while loops creates an infinite loop?",
+    options: [
+      "let i = 0; while (i < 5) { i++; }",
+      "let i = 0; while (i < 5) { }",
+      "let i = 10; while (i > 0) { i--; }",
+      "let i = 5; while (i === 0) { i--; }",
+    ],
+    correctAnswer: 1,
+    difficulty: "medium",
+    concept: "While Loops",
+    explanation: "Option B never increments i, so i < 5 remains true forever, creating an infinite loop.",
+    wrongAnswerHint: "An infinite loop occurs when the condition never becomes false.",
+  },
+
+  // ── Nested Loops ──
+  {
+    id: "loop-7",
+    question: "How many times does 'x' get printed?",
+    codeSnippet: `for (let i = 0; i < 3; i++) {\n  for (let j = 0; j < 2; j++) {\n    console.log('x');\n  }\n}`,
+    options: ["3", "5", "6", "9"],
+    correctAnswer: 2,
+    difficulty: "medium",
+    concept: "Nested Loops",
+    explanation: "The outer loop runs 3 times, and the inner loop runs 2 times per outer iteration. Total: 3 × 2 = 6.",
+  },
+  {
+    id: "loop-8",
+    question: "What is the time complexity of a nested loop where both loops run n times?",
+    options: ["O(n)", "O(n log n)", "O(n²)", "O(2n)"],
+    correctAnswer: 2,
+    difficulty: "medium",
+    concept: "Nested Loops",
+    explanation: "When you nest two loops each running n times, the total operations are n × n = n², giving O(n²) complexity.",
+    wrongAnswerHint: "O(2n) simplifies to O(n), which doesn't account for multiplication of iterations.",
+  },
+
+  // ── Break & Continue ──
+  {
+    id: "loop-9",
+    question: "What does the break statement do in a loop?",
+    options: [
+      "Skips the current iteration",
+      "Exits the loop immediately",
+      "Restarts the loop from the beginning",
+      "Pauses the loop",
+    ],
+    correctAnswer: 1,
+    difficulty: "easy",
+    concept: "Break & Continue",
+    explanation: "break immediately exits the loop, skipping any remaining iterations and code after break inside the loop body.",
+    wrongAnswerHint: "continue skips the current iteration; break exits entirely.",
+  },
+  {
+    id: "loop-10",
+    question: "What is the output of this code?",
+    codeSnippet: `for (let i = 0; i < 5; i++) {\n  if (i === 3) continue;\n  console.log(i);\n}`,
+    options: ["0 1 2 3 4", "0 1 2 4", "0 1 2", "1 2 4"],
+    correctAnswer: 1,
+    difficulty: "medium",
+    concept: "Break & Continue",
+    explanation: "continue skips the rest of the loop body for i=3, so 3 is not printed. Output: 0, 1, 2, 4.",
+    wrongAnswerHint: "continue only skips i=3, it does NOT stop the loop — it continues with i=4.",
   },
 ];

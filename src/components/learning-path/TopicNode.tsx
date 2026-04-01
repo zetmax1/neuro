@@ -15,6 +15,9 @@ interface TopicNodeProps {
   difficulty: "beginner" | "intermediate" | "advanced";
   prerequisites?: string[];
   description?: string;
+  recommendationReason?: string;
+  isBlocked?: boolean;
+  blockedReason?: string;
   onClick?: () => void;
 }
 
@@ -61,6 +64,9 @@ const TopicNode = ({
   difficulty, 
   prerequisites,
   description,
+  recommendationReason,
+  isBlocked,
+  blockedReason,
   onClick 
 }: TopicNodeProps) => {
   const config = statusConfig[status];
@@ -76,10 +82,11 @@ const TopicNode = ({
           className={cn(
             "group relative flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300 text-left w-full",
             config.borderClass,
-            isInteractive 
+            isInteractive && !isBlocked
               ? "hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card" 
               : "opacity-60 cursor-not-allowed bg-muted/30",
-            status === "in-progress" && "shadow-glow"
+            status === "in-progress" && "shadow-glow",
+            isBlocked && "border-destructive/50 grayscale-[0.5]"
           )}
         >
           {/* Status Icon */}
@@ -109,6 +116,19 @@ const TopicNode = ({
                 {difficulty}
               </span>
             </div>
+            
+            {status === "recommended" && recommendationReason && (
+              <p className="text-xs text-accent font-medium mb-1 animate-pulse">
+                ✨ {recommendationReason}
+              </p>
+            )}
+
+            {isBlocked && blockedReason && (
+              <p className="text-xs text-destructive font-medium mb-1">
+                ⚠️ {blockedReason}
+              </p>
+            )}
+
             <p className={cn(
               "text-xs font-medium uppercase tracking-wider",
               config.textClass
@@ -140,6 +160,12 @@ const TopicNode = ({
                   <li key={prereq}>• {prereq}</li>
                 ))}
               </ul>
+            </div>
+          )}
+          {isBlocked && (
+            <div className="pt-2 border-t border-destructive/20 mt-2">
+              <p className="text-xs font-bold text-destructive">Knowledge Gap Detected</p>
+              <p className="text-xs text-muted-foreground italic">Master the prerequisites to unlock this topic.</p>
             </div>
           )}
         </div>

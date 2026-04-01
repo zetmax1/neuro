@@ -1,5 +1,6 @@
 import Header from "@/components/layout/Header";
 import TopicNode, { TopicStatus } from "@/components/learning-path/TopicNode";
+import KnowledgeGraph from "@/components/learning-path/KnowledgeGraph";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, Filter, Layers } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +13,9 @@ interface Topic {
   difficulty: "beginner" | "intermediate" | "advanced";
   prerequisites?: string[];
   description?: string;
+  recommendationReason?: string;
+  isBlocked?: boolean;
+  blockedReason?: string;
 }
 
 interface Module {
@@ -43,8 +47,8 @@ const modules: Module[] = [
       { id: "arrays", title: "Arrays & Lists", status: "completed", difficulty: "beginner", prerequisites: ["Control Structures"], description: "Sequential data storage" },
       { id: "stacks", title: "Stacks & Queues", status: "completed", difficulty: "intermediate", prerequisites: ["Arrays & Lists"], description: "LIFO and FIFO structures" },
       { id: "trees", title: "Trees & Binary Trees", status: "in-progress", difficulty: "intermediate", prerequisites: ["Stacks & Queues"], description: "Hierarchical data structures" },
-      { id: "graphs", title: "Graph Fundamentals", status: "recommended", difficulty: "intermediate", prerequisites: ["Trees & Binary Trees"], description: "Nodes and edges for complex relationships" },
-      { id: "hash", title: "Hash Tables", status: "locked", difficulty: "intermediate", prerequisites: ["Arrays & Lists"], description: "Fast key-value lookups" },
+      { id: "graphs", title: "Graph Fundamentals", status: "recommended", difficulty: "intermediate", prerequisites: ["Trees & Binary Trees"], recommendationReason: "Builds on your tree knowledge", description: "Nodes and edges for complex relationships" },
+      { id: "hash", title: "Hash Tables", status: "locked", difficulty: "intermediate", isBlocked: true, blockedReason: "Complete 'Arrays & Lists' first", prerequisites: ["Arrays & Lists"], description: "Fast key-value lookups" },
     ]
   },
   {
@@ -54,7 +58,7 @@ const modules: Module[] = [
     progress: 25,
     topics: [
       { id: "complexity", title: "Complexity Analysis", status: "completed", difficulty: "intermediate", description: "Big O notation and efficiency" },
-      { id: "sorting", title: "Sorting Algorithms", status: "recommended", difficulty: "intermediate", prerequisites: ["Complexity Analysis", "Arrays & Lists"], description: "Ordering data efficiently" },
+      { id: "sorting", title: "Sorting Algorithms", status: "recommended", difficulty: "intermediate", recommendationReason: "Essential for efficiency", prerequisites: ["Complexity Analysis", "Arrays & Lists"], description: "Ordering data efficiently" },
       { id: "searching", title: "Search Algorithms", status: "locked", difficulty: "intermediate", prerequisites: ["Sorting Algorithms"], description: "Finding elements in data" },
       { id: "dynamic", title: "Dynamic Programming", status: "locked", difficulty: "advanced", prerequisites: ["Search Algorithms", "Graph Fundamentals"], description: "Optimal substructure problems" },
     ]
@@ -73,6 +77,7 @@ const modules: Module[] = [
 
 const LearningPath = () => {
   const [expandedModules, setExpandedModules] = useState<string[]>(["foundations", "data-structures", "algorithms"]);
+  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => 
@@ -94,6 +99,29 @@ const LearningPath = () => {
           </p>
         </div>
 
+        {/* Smart Next Action - New Section */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 animate-fade-in">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
+                  Recommended Next
+                </span>
+                <h2 className="text-xl font-bold text-foreground">Trees & Binary Trees</h2>
+              </div>
+              <p className="text-muted-foreground text-sm max-w-2xl">
+                You're currently mastering Hierarchical data structures. Completing this will unlock 
+                <span className="text-foreground font-medium mx-1">Graph Fundamentals</span> 
+                and move you closer to your <span className="text-foreground font-medium">Data Structures</span> goal.
+              </p>
+            </div>
+            <Button size="lg" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all text-base px-8 h-12">
+              Continue Learning
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        </div>
+
         {/* Filters & Legend */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 animate-slide-up delay-100">
           <div className="flex items-center gap-4">
@@ -101,9 +129,13 @@ const LearningPath = () => {
               <Filter className="w-4 h-4 mr-2" />
               Filter Topics
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant={viewMode === "list" ? "outline" : "default"} 
+              size="sm" 
+              onClick={() => setViewMode(viewMode === "list" ? "graph" : "list")}
+            >
               <Layers className="w-4 h-4 mr-2" />
-              View as Graph
+              {viewMode === "list" ? "View as Graph" : "View as List"}
             </Button>
           </div>
           
@@ -128,8 +160,13 @@ const LearningPath = () => {
           </div>
         </div>
 
-        {/* Modules */}
-        <div className="space-y-6">
+        {/* Modules / Graph Content */}
+        {viewMode === "graph" ? (
+          <div className="animate-fade-in">
+            <KnowledgeGraph modules={modules} />
+          </div>
+        ) : (
+          <div className="space-y-6">
           {modules.map((module, moduleIndex) => (
             <div 
               key={module.id} 
@@ -206,6 +243,7 @@ const LearningPath = () => {
             </div>
           ))}
         </div>
+        )}
       </main>
     </div>
   );
