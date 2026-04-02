@@ -76,7 +76,7 @@ const modules: Module[] = [
 ];
 
 const LearningPath = () => {
-  const [expandedModules, setExpandedModules] = useState<string[]>(["foundations", "data-structures", "algorithms"]);
+  const [expandedModules, setExpandedModules] = useState<string[]>(["foundations", "data-structures", "algorithms", "advanced"]);
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
 
   const toggleModule = (moduleId: string) => {
@@ -90,73 +90,56 @@ const LearningPath = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container max-w-4xl mx-auto px-4 py-12">
         {/* Page Header */}
-        <div className="mb-8 animate-slide-up">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Your Learning Path</h1>
-          <p className="text-muted-foreground">
-            A personalized roadmap based on your knowledge state and learning goals.
-          </p>
-        </div>
-
-        {/* Smart Next Action - New Section */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 animate-fade-in">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
-                  Recommended Next
-                </span>
-                <h2 className="text-xl font-bold text-foreground">Trees & Binary Trees</h2>
-              </div>
-              <p className="text-muted-foreground text-sm max-w-2xl">
-                You're currently mastering Hierarchical data structures. Completing this will unlock 
-                <span className="text-foreground font-medium mx-1">Graph Fundamentals</span> 
-                and move you closer to your <span className="text-foreground font-medium">Data Structures</span> goal.
-              </p>
-            </div>
-            <Button size="lg" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all text-base px-8 h-12">
-              Continue Learning
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </Button>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 animate-slide-up">
+          <div>
+            <h1 className="text-4xl font-semibold text-foreground mb-3 tracking-tight">Your learning path</h1>
+            <p className="text-muted-foreground text-lg">
+              A personalized roadmap based on your knowledge state.
+            </p>
           </div>
-        </div>
-
-        {/* Filters & Legend */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 animate-slide-up delay-100">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
+          
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               <Filter className="w-4 h-4 mr-2" />
-              Filter Topics
+              Filter
             </Button>
             <Button 
-              variant={viewMode === "list" ? "outline" : "default"} 
-              size="sm" 
+              variant="outline" 
+              size="sm"
+              className="rounded-full px-4" 
               onClick={() => setViewMode(viewMode === "list" ? "graph" : "list")}
             >
               <Layers className="w-4 h-4 mr-2" />
-              {viewMode === "list" ? "View as Graph" : "View as List"}
+              {viewMode === "list" ? "View Graph" : "View List"}
             </Button>
           </div>
+        </div>
+
+        {/* Smart Next Action - Minimalist */}
+        <div className="mb-16 p-8 rounded-[2rem] bg-background border border-border/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-fade-in relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
           
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-success" />
-              <span className="text-muted-foreground">Completed</span>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative z-10">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest">
+                  Up Next
+                </span>
+              </div>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Trees & Binary Trees</h2>
+              <p className="text-muted-foreground text-sm max-w-xl leading-relaxed">
+                You're currently mastering hierarchical data structures. Completing this will unlock 
+                <span className="text-foreground font-medium mx-1">Graph Fundamentals</span> 
+                and move you closer to your data structures goal.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary" />
-              <span className="text-muted-foreground">In Progress</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-accent" />
-              <span className="text-muted-foreground">Recommended</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-muted" />
-              <span className="text-muted-foreground">Locked</span>
-            </div>
+            <Button size="lg" className="rounded-full text-base px-8 h-12 shadow-sm font-medium transition-transform hover:scale-[1.02]">
+              Continue Session
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         </div>
 
@@ -166,71 +149,65 @@ const LearningPath = () => {
             <KnowledgeGraph modules={modules} />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-12">
           {modules.map((module, moduleIndex) => (
             <div 
               key={module.id} 
-              className="rounded-2xl border border-border bg-card overflow-hidden animate-slide-up"
+              className="animate-slide-up"
               style={{ animationDelay: `${(moduleIndex + 2) * 100}ms` }}
             >
-              {/* Module Header */}
+              {/* Module Header - Typography focus */}
               <button
                 onClick={() => toggleModule(module.id)}
-                className="w-full p-6 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+                className="w-full group flex items-end justify-between py-2 border-b border-border/50 hover:border-foreground/20 transition-colors text-left"
               >
                 <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center",
-                    module.progress === 100 
-                      ? "bg-success/10 text-success" 
-                      : module.progress > 0 
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
-                  )}>
-                    {expandedModules.includes(module.id) 
-                      ? <ChevronDown className="w-6 h-6" />
-                      : <ChevronRight className="w-6 h-6" />
-                    }
-                  </div>
                   <div className="text-left">
-                    <h2 className="text-lg font-semibold text-foreground">{module.title}</h2>
-                    <p className="text-sm text-muted-foreground">{module.description}</p>
+                    <div className="flex items-center gap-3 mb-1">
+                      <h2 className="text-2xl font-medium text-foreground tracking-tight group-hover:text-primary transition-colors">{module.title}</h2>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-foreground">{module.progress}%</span>
-                    <p className="text-xs text-muted-foreground">{module.topics.length} topics</p>
-                  </div>
-                  <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        module.progress === 100 ? "bg-success" : "bg-primary"
-                      )}
-                      style={{ width: `${module.progress}%` }}
-                    />
+                <div className="flex items-center gap-6 pb-1">
+                  <span className="text-sm font-medium text-muted-foreground font-mono">{module.progress}%</span>
+                  <div className={cn(
+                    "text-muted-foreground/40 transition-transform duration-300",
+                    expandedModules.includes(module.id) ? "rotate-180" : ""
+                  )}>
+                    <ChevronDown className="w-5 h-5" />
                   </div>
                 </div>
               </button>
+              
+              {/* Thin progress line */}
+              <div className="w-full h-[1px] bg-border/20">
+                <div 
+                  className={cn(
+                    "h-full transition-all duration-700",
+                    module.progress === 100 ? "bg-muted-foreground/30" : "bg-primary"
+                  )}
+                  style={{ width: `${module.progress}%` }}
+                />
+              </div>
 
-              {/* Topics */}
-              {expandedModules.includes(module.id) && (
-                <div className="p-6 pt-0 border-t border-border">
-                  <div className="grid gap-3 mt-4">
+              {/* Topics List - Indented and minimal */}
+              <div className={cn(
+                "grid transition-all duration-500 origin-top overflow-hidden",
+                expandedModules.includes(module.id) 
+                  ? "grid-rows-[1fr] opacity-100 mt-6" 
+                  : "grid-rows-[0fr] opacity-0 mt-0"
+              )}>
+                <div className="min-h-0">
+                  <div className="pl-4 relative flex flex-col gap-1">
+                    {/* Connecting line */}
+                    <div className="absolute left-[25px] top-4 bottom-4 w-px bg-border/40 -z-10" />
+                    
                     {module.topics.map((topic, topicIndex) => (
                       <div 
                         key={topic.id}
                         className="relative"
-                        style={{ 
-                          marginLeft: topicIndex > 0 ? '24px' : 0,
-                          animationDelay: `${topicIndex * 50}ms`
-                        }}
+                        style={{ animationDelay: `${topicIndex * 50}ms` }}
                       >
-                        {/* Connection Line */}
-                        {topicIndex > 0 && (
-                          <div className="absolute -left-6 top-1/2 w-6 h-px bg-border" />
-                        )}
                         <TopicNode
                           {...topic}
                           onClick={() => console.log("Navigate to topic:", topic.id)}
@@ -239,9 +216,15 @@ const LearningPath = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
+          {/* End of timeline indicator */}
+          <div className="py-8 text-center text-muted-foreground/30 flex flex-col items-center gap-2">
+             <div className="w-1 h-1 rounded-full bg-border" />
+             <div className="w-1 h-1 rounded-full bg-border" />
+             <div className="w-1 h-1 rounded-full bg-border" />
+          </div>
         </div>
         )}
       </main>

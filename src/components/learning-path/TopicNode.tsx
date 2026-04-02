@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Lock, CheckCircle2, Play, Clock } from "lucide-react";
+import { Lock, CheckCircle2, CircleDashed, CircleDot } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,38 +24,28 @@ interface TopicNodeProps {
 const statusConfig = {
   completed: {
     icon: CheckCircle2,
-    bgClass: "bg-success",
-    borderClass: "border-success",
-    textClass: "text-success",
+    textClass: "text-muted-foreground",
+    iconClass: "text-muted-foreground/60",
     label: "Completed",
   },
   "in-progress": {
-    icon: Play,
-    bgClass: "gradient-primary",
-    borderClass: "border-primary",
-    textClass: "text-primary",
+    icon: CircleDot,
+    textClass: "text-foreground font-semibold",
+    iconClass: "text-primary",
     label: "In Progress",
   },
   recommended: {
-    icon: Clock,
-    bgClass: "gradient-accent",
-    borderClass: "border-accent",
-    textClass: "text-accent",
+    icon: CircleDashed,
+    textClass: "text-foreground",
+    iconClass: "text-muted-foreground/60",
     label: "Recommended",
   },
   locked: {
     icon: Lock,
-    bgClass: "bg-muted",
-    borderClass: "border-muted",
-    textClass: "text-muted-foreground",
+    textClass: "text-muted-foreground/50",
+    iconClass: "text-muted-foreground/30",
     label: "Locked",
   },
-};
-
-const difficultyColors = {
-  beginner: "bg-success/10 text-success",
-  intermediate: "bg-warning/10 text-warning",
-  advanced: "bg-destructive/10 text-destructive",
 };
 
 const TopicNode = ({ 
@@ -64,7 +54,6 @@ const TopicNode = ({
   difficulty, 
   prerequisites,
   description,
-  recommendationReason,
   isBlocked,
   blockedReason,
   onClick 
@@ -80,82 +69,44 @@ const TopicNode = ({
           onClick={isInteractive ? onClick : undefined}
           disabled={!isInteractive}
           className={cn(
-            "group relative flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300 text-left w-full",
-            config.borderClass,
-            isInteractive && !isBlocked
-              ? "hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card" 
-              : "opacity-60 cursor-not-allowed bg-muted/30",
-            status === "in-progress" && "shadow-glow",
-            isBlocked && "border-destructive/50 grayscale-[0.5]"
+            "group relative flex items-center gap-4 py-2 w-full text-left transition-colors bg-transparent",
+             isInteractive && !isBlocked
+              ? "hover:bg-muted/20 cursor-pointer rounded-lg px-2 -mx-2" 
+              : "cursor-not-allowed px-2 -mx-2",
           )}
         >
-          {/* Status Icon */}
-          <div className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-            config.bgClass
-          )}>
-            <Icon className={cn(
-              "w-6 h-6",
-              status === "locked" ? "text-muted-foreground" : "text-white"
-            )} />
+          <div className="flex items-center justify-center w-5 shrink-0 z-10 bg-background/80 backdrop-blur-sm py-1">
+             <Icon className={cn("w-4 h-4", config.iconClass)} />
           </div>
-
-          {/* Content */}
+          
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className={cn(
-                "font-semibold truncate",
-                status === "locked" ? "text-muted-foreground" : "text-foreground"
-              )}>
-                {title}
-              </h3>
-              <span className={cn(
-                "text-xs font-medium px-2 py-0.5 rounded-full shrink-0",
-                difficultyColors[difficulty]
-              )}>
-                {difficulty}
-              </span>
-            </div>
-            
-            {status === "recommended" && recommendationReason && (
-              <p className="text-xs text-accent font-medium mb-1 animate-pulse">
-                ✨ {recommendationReason}
-              </p>
-            )}
-
-            {isBlocked && blockedReason && (
-              <p className="text-xs text-destructive font-medium mb-1">
-                ⚠️ {blockedReason}
-              </p>
-            )}
-
-            <p className={cn(
-              "text-xs font-medium uppercase tracking-wider",
-              config.textClass
-            )}>
-              {config.label}
-            </p>
+             <div className="flex items-center justify-between gap-3">
+                 <div className="flex items-center gap-3">
+                     <h3 className={cn("text-sm transition-colors", config.textClass)}>
+                          {title}
+                     </h3>
+                     {status === "recommended" && (
+                         <span className="text-[10px] uppercase font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">Recommended</span>
+                     )}
+                     {isBlocked && blockedReason && (
+                        <span className="text-[10px] uppercase font-bold text-destructive opacity-70 border border-destructive/20 px-1.5 py-0.5 rounded">Requirement unmet</span>
+                     )}
+                 </div>
+                 <div className="flex items-center gap-4">
+                     <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">{difficulty}</span>
+                 </div>
+             </div>
           </div>
-
-          {/* Animated ring for recommended/in-progress */}
-          {(status === "recommended" || status === "in-progress") && (
-            <div className="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"
-              style={{
-                background: `linear-gradient(135deg, ${status === "in-progress" ? "hsl(234, 89%, 58%)" : "hsl(172, 66%, 50%)"} 0%, transparent 50%)`,
-                filter: "blur(8px)"
-              }}
-            />
-          )}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="right" className="max-w-xs">
+      <TooltipContent side="right" className="max-w-xs border-border/50 text-xs">
         <div className="space-y-2">
-          <p className="font-semibold">{title}</p>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          <p className="font-semibold text-sm">{title}</p>
+          {description && <p className="text-muted-foreground">{description}</p>}
           {prerequisites && prerequisites.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Prerequisites:</p>
-              <ul className="text-xs text-muted-foreground">
+              <p className="font-medium text-muted-foreground mb-1">Prerequisites:</p>
+              <ul className="text-muted-foreground">
                 {prerequisites.map((prereq) => (
                   <li key={prereq}>• {prereq}</li>
                 ))}
@@ -163,9 +114,9 @@ const TopicNode = ({
             </div>
           )}
           {isBlocked && (
-            <div className="pt-2 border-t border-destructive/20 mt-2">
-              <p className="text-xs font-bold text-destructive">Knowledge Gap Detected</p>
-              <p className="text-xs text-muted-foreground italic">Master the prerequisites to unlock this topic.</p>
+            <div className="pt-2 border-t border-border mt-2">
+              <p className="font-bold text-destructive">Knowledge Gap Detected</p>
+              <p className="text-muted-foreground italic">Master the prerequisites to unlock this topic.</p>
             </div>
           )}
         </div>

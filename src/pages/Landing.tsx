@@ -92,7 +92,7 @@ const Landing = () => {
               </p>
               <Link to="/auth">
                 <Button size="xl" variant="secondary" className="group text-primary font-semibold rounded-full px-8">
-                  Start Learning for Free
+                  Start learning for free
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

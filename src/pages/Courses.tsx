@@ -126,81 +126,79 @@ const Courses = () => {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 mt-12">
           {courses.map((course, index) => (
             <Link
               key={course.id}
               to="/course"
-              className="group p-6 rounded-2xl bg-card border border-border card-hover animate-slide-up"
+              className="group flex flex-col p-6 rounded-2xl border border-border/40 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-300 animate-slide-up"
               style={{ animationDelay: `${(index + 3) * 100}ms` }}
             >
               {/* Icon & Progress */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-5">
                 <div 
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: `${course.color}15` }}
+                  className="w-12 h-12 flex items-center justify-center shrink-0"
                 >
-                  <course.icon className="w-7 h-7" style={{ color: course.color }} />
+                  <course.icon className="w-8 h-8 text-foreground/80 group-hover:text-primary transition-colors" />
                 </div>
                 {course.progress > 0 && (
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-foreground">{course.progress}%</span>
-                    <p className="text-xs text-muted-foreground">complete</p>
+                    <span className="text-2xl font-light text-foreground">{course.progress}%</span>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">complete</p>
                   </div>
                 )}
               </div>
 
               {/* Content */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="text-xs">
+              <div className="mb-6 flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     {course.category}
-                  </Badge>
-                  <Badge 
-                    variant="outline"
+                  </span>
+                  <span className="text-muted-foreground/30">•</span>
+                  <span 
                     className={cn(
-                      "text-xs",
-                      course.difficulty === "beginner" && "border-success/30 text-success",
-                      course.difficulty === "intermediate" && "border-warning/30 text-warning",
-                      course.difficulty === "advanced" && "border-destructive/30 text-destructive"
+                      "text-[10px] font-bold uppercase tracking-widest",
+                      course.difficulty === "beginner" && "text-success",
+                      course.difficulty === "intermediate" && "text-warning",
+                      course.difficulty === "advanced" && "text-destructive"
                     )}
                   >
                     {course.difficulty}
-                  </Badge>
+                  </span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-medium tracking-tight text-foreground mb-2 group-hover:text-primary transition-colors">
                   {course.title}
                 </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
                   {course.description}
                 </p>
               </div>
 
               {/* Meta */}
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-5 text-sm text-muted-foreground/80">
+                  <span className="flex items-center gap-1.5 font-medium">
                     <BookOpen className="w-4 h-4" />
                     {course.topics} topics
                   </span>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1.5 font-medium">
                     <Clock className="w-4 h-4" />
                     {course.hours}h
                   </span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center transition-colors group-hover:bg-primary/5">
+                  <ArrowRight className="w-4 h-4 text-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </div>
               </div>
 
               {/* Progress Bar */}
               {course.progress > 0 && (
-                <div className="mt-4">
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="mt-5">
+                  <div className="h-[2px] bg-border/40 w-full overflow-hidden">
                     <div 
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${course.progress}%`,
-                        backgroundColor: course.color 
-                      }}
+                      className="h-full transition-all duration-700 bg-primary"
+                      style={{ width: `${course.progress}%` }}
                     />
                   </div>
                 </div>

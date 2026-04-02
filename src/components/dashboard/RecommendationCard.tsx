@@ -14,23 +14,22 @@ const typeConfig = {
   next: {
     icon: BookOpen,
     label: "Recommended Next",
-    iconClass: "text-primary bg-primary/10",
+    iconClass: "text-primary",
   },
   revise: {
     icon: AlertTriangle,
     label: "Needs Revision",
-    // Using a subtle foreground/neutral treatment instead of bright yellow/orange
-    iconClass: "text-foreground bg-secondary", 
+    iconClass: "text-foreground", 
   },
   ready: {
     icon: CheckCircle2,
     label: "Ready to Advance",
-    iconClass: "text-primary bg-primary/10",
+    iconClass: "text-primary",
   },
   upcoming: {
     icon: Clock,
     label: "Coming Soon",
-    iconClass: "text-muted-foreground bg-muted",
+    iconClass: "text-muted-foreground",
   },
 };
 
@@ -41,18 +40,18 @@ const RecommendationCard = ({ type, title, description, action, onClick }: Recom
 
   return (
     <div className={cn(
-      "p-5 rounded-2xl border transition-all duration-200",
-      isUpcoming ? "bg-transparent border-dashed border-border" : "bg-card border-border hover:border-foreground/20"
+      "py-4 transition-all duration-200 bg-transparent border-b border-border/40 last:border-0 hover:bg-muted/10 -mx-4 px-4 rounded-xl",
+      isUpcoming && "opacity-70"
     )}>
       <div className="flex items-start gap-4">
-        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", config.iconClass)}>
+        <div className={cn("mt-1 shrink-0", config.iconClass)}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">
             {config.label}
           </div>
-          <h4 className={cn("font-semibold mb-1 truncate", isUpcoming ? "text-muted-foreground" : "text-foreground")}>
+          <h4 className={cn("font-medium mb-1 truncate", isUpcoming ? "text-muted-foreground" : "text-foreground")}>
             {title}
           </h4>
           <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{description}</p>
@@ -62,10 +61,10 @@ const RecommendationCard = ({ type, title, description, action, onClick }: Recom
             variant="ghost" 
             size="sm" 
             onClick={onClick}
-            className="shrink-0 text-primary hover:text-primary hover:bg-primary/10 -mr-2"
+            className="shrink-0 text-primary hover:text-primary bg-primary/5 hover:bg-primary/10 rounded-full h-8 px-4 text-xs font-semibold"
           >
             {action}
-            <ArrowRight className="w-4 h-4 ml-1" />
+            <ArrowRight className="w-3 h-3 ml-1.5" />
           </Button>
         )}
       </div>

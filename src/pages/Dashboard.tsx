@@ -144,10 +144,10 @@ const Dashboard = () => {
               
               <Link 
                 to="/courses" 
-                className="group p-6 rounded-2xl border border-border bg-card/50 hover:bg-secondary/50 hover:border-foreground/20 transition-all duration-200 flex flex-col items-center justify-center text-center h-full min-h-[160px]"
+                className="group py-4 border-t border-dashed border-border/40 hover:border-foreground/30 transition-all duration-200 flex flex-col items-center justify-center text-center h-full min-h-[120px] -mx-4 px-4 rounded-xl hover:bg-muted/5"
               >
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
-                  <Plus className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-full border border-border/50 flex items-center justify-center mb-3 group-hover:border-primary group-hover:text-primary transition-colors duration-200">
+                  <Plus className="w-4 h-4" />
                 </div>
                 <span className="font-medium text-foreground text-sm">Explore more subjects</span>
                 <span className="text-xs text-muted-foreground mt-1">Browse the catalog</span>
@@ -161,7 +161,7 @@ const Dashboard = () => {
           </div>
 
           {/* Right Column - Recommendations */}
-          <div className="space-y-6">
+          <div className="space-y-6 ml-6">
             <h2 className="text-lg font-semibold tracking-tight text-foreground">What's next for you</h2>
             
             <div className="space-y-3">
@@ -196,44 +196,44 @@ const Dashboard = () => {
         </div>
 
         {/* Activity Feed Section */}
-        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-border bg-secondary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mt-16">
+          <div className="pb-4 border-b border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Recent activity</h2>
               <p className="text-sm text-muted-foreground">Your learning journey over the last 7 days</p>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
-              <TrendingUp className="w-4 h-4" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 text-primary text-xs font-semibold uppercase tracking-wider">
+              <TrendingUp className="w-3.5 h-3.5" />
               <span>+12% improvement</span>
             </div>
           </div>
 
-          <div className="divide-y divide-border">
+          <div className="space-y-1">
             {[
               { day: "Today", activity: "Completed Assessment: Sorting Algorithms", score: "92%", icon: Target },
               { day: "Yesterday", activity: "Studied: Hash Tables & Applications", time: "45 min", icon: BookOpen },
               { day: "2 days ago", activity: "Completed: Graph Basics Module", status: "Mastered", icon: Code },
             ].map((item, index) => (
-              <div key={index} className="flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
-                  <item.icon className="w-5 h-5 text-foreground" />
+              <div key={index} className="flex items-center gap-4 py-3 border-b border-border/40 last:border-0 hover:bg-muted/10 transition-colors -mx-4 px-4 rounded-xl">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-transparent">
+                  <item.icon className="w-4 h-4 text-foreground/70" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{item.activity}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.day}</p>
+                  <p className="text-sm font-medium text-foreground truncate pl-1">{item.activity}</p>
                 </div>
-                <div className="flex items-center gap-3 text-right">
+                <div className="flex items-center gap-4 text-right">
                   {item.score && (
-                    <span className="text-sm font-semibold text-foreground">{item.score}</span>
+                    <span className="text-sm font-medium text-foreground">{item.score}</span>
                   )}
                   {item.time && (
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">{item.time}</span>
                   )}
                   {item.status && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-primary/20 text-primary">
                       {item.status}
                     </span>
                   )}
+                  <span className="text-xs text-muted-foreground w-16 text-right hidden sm:inline-block">{item.day}</span>
                 </div>
               </div>
             ))}

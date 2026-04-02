@@ -86,11 +86,11 @@ const Tutor = () => {
         />
 
         {/* Chat Area */}
-        <div className="flex-1 rounded-2xl border border-border bg-card overflow-hidden flex flex-col animate-slide-up delay-200">
+        <div className="flex-1 flex flex-col animate-slide-up delay-200">
           {/* Mode Selector */}
           <TutorModeSelector mode={mode} onModeChange={setMode} />
 
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <ScrollArea className="flex-1 py-4" ref={scrollRef}>
             <div className="space-y-4">
               {/* Welcome message based on mode */}
               {messages.length === 0 && (
@@ -118,7 +118,7 @@ const Tutor = () => {
           </ScrollArea>
 
           {/* Suggestions & Input */}
-          <div className="p-4 border-t border-border">
+          <div className="pt-4 pb-2 border-t border-border/40 mt-auto">
             {/* Quick Suggestions based on mode */}
             <div className="flex flex-wrap gap-2 mb-4">
               {mode === "socratic" && (
@@ -158,14 +158,16 @@ const Tutor = () => {
               )}
             </div>
 
-            <div className="flex gap-2">
-              <ChatInput
-                onSend={sendMessage}
-                isLoading={isLoading}
-                placeholder={`Ask your ${mode === "study-buddy" ? "study buddy" : "tutor"} anything...`}
-              />
+            <div className="flex gap-2 w-full">
+              <div className="flex-1 flex max-w-[800px]">
+                <ChatInput
+                  onSend={sendMessage}
+                  isLoading={isLoading}
+                  placeholder={`Ask your ${mode === "study-buddy" ? "study buddy" : "tutor"} anything...`}
+                />
+              </div>
               {messages.length > 0 && (
-                <Button variant="outline" size="icon" onClick={clearMessages} title="Clear chat">
+                <Button variant="ghost" size="icon" onClick={clearMessages} title="Clear chat" className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
                   <RotateCcw className="w-4 h-4" />
                 </Button>
               )}

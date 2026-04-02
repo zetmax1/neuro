@@ -104,13 +104,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Brain, Target, Sparkles } from "lucide-react";
+import { Hero3DBackground } from "./Hero3DBackground";
 
 const HeroSection = () => {
   return (
     <section className="relative pt-24 pb-32 overflow-hidden bg-background">
-      {/* Subtle grid pattern instead of floating glowing orbs */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+      {/* 3D Background */}
+      <Hero3DBackground />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
@@ -159,35 +160,81 @@ const HeroSection = () => {
 
           {/* Right Column: Visual/Mockup */}
           <div className="relative hidden lg:block">
-            {/* Abstract UI Representation */}
-            <div className="relative rounded-2xl border border-border bg-card shadow-2xl overflow-hidden aspect-square max-h-[500px] w-full ml-auto">
-              <div className="flex items-center px-4 py-3 border-b border-border bg-muted/30">
+            {/* Abstract UI Representation that uses realistic static data */}
+            <div className="relative rounded-2xl border border-border bg-card/80 backdrop-blur-md shadow-2xl overflow-hidden min-h-[450px] w-full ml-auto flex flex-col">
+              <div className="flex items-center px-4 py-3 border-b border-border bg-muted/40">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400/80" />
                   <div className="w-3 h-3 rounded-full bg-amber-400/80" />
                   <div className="w-3 h-3 rounded-full bg-green-400/80" />
                 </div>
+                <div className="mx-auto text-xs font-medium text-muted-foreground bg-background/50 px-3 py-1 rounded-md shadow-sm border border-border/50 backdrop-blur-sm">
+                  Neuro Learning
+                </div>
               </div>
-              {/* Fake Dashboard Elements */}
-              <div className="p-6 space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 animate-pulse" />
-                  <div className="space-y-2 flex-1 pt-2">
-                    <div className="h-4 bg-muted rounded w-1/3" />
-                    <div className="h-3 bg-muted/60 rounded w-1/4" />
+              
+              {/* Static Data Mockup */}
+              <div className="p-6 flex-1 flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg text-foreground">Next Objective</h3>
+                    <p className="text-sm text-muted-foreground">Based on your recent performance</p>
+                  </div>
+                  <div className="w-14 h-14 rounded-full border-[3px] border-primary/20 flex items-center justify-center relative bg-background/50">
+                    <svg className="w-14 h-14 absolute -inset-[3px] -rotate-90 drop-shadow-sm">
+                      <circle className="text-primary" strokeWidth="3" strokeDasharray="125 125" strokeDashoffset="31.25" strokeLinecap="round" stroke="currentColor" fill="transparent" r="20" cx="28" cy="28" />
+                    </svg>
+                    <span className="text-sm font-bold text-foreground">75%</span>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="h-8 bg-muted/40 rounded w-full" />
-                  <div className="h-8 bg-muted/40 rounded w-5/6" />
-                  <div className="h-8 bg-primary/10 border border-primary/20 rounded w-full" />
-                  <div className="h-8 bg-muted/40 rounded w-4/6" />
+                
+                <div className="space-y-4">
+                  <div className="bg-background padding-0 shadow-sm border border-border/60 flex items-stretch rounded-xl overflow-hidden transition-all hover:border-primary/50 cursor-pointer hover:shadow-md group">
+                    <div className="w-1.5 bg-primary" />
+                    <div className="p-4 flex items-start gap-4 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                          <Brain className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                          <h4 className="font-semibold text-sm text-foreground">Neural Networks Basics</h4>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-[10px] uppercase font-bold tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded">Machine Learning</span>
+                            <span className="text-xs text-muted-foreground font-medium">Est. 15 mins</span>
+                          </div>
+                      </div>
+                      <div className="h-full flex items-center">
+                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted/30 padding-0 border border-border/40 border-dashed flex items-stretch rounded-xl overflow-hidden opacity-70">
+                    <div className="w-1.5 bg-muted-foreground/30" />
+                    <div className="p-4 flex items-start gap-4 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0 mt-0.5">
+                          <Target className="w-5 h-5" />
+                      </div>
+                      <div>
+                          <h4 className="font-semibold text-sm text-foreground">Gradient Descent</h4>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-[10px] uppercase font-bold tracking-wider bg-muted text-muted-foreground px-2 py-0.5 rounded">Prerequisite Locked</span>
+                          </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-auto pt-4">
+                  <Button className="w-full shadow-lg shadow-primary/20 font-semibold" size="default">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Start Personalized Session
+                  </Button>
                 </div>
               </div>
             </div>
             
             {/* Decorative offset block */}
-            <div className="absolute -inset-4 bg-primary/5 rounded-3xl -z-10 transform translate-x-4 translate-y-4" />
+            <div className="absolute -inset-4 bg-primary/5 rounded-3xl -z-10 transform translate-x-3 translate-y-3" />
           </div>
 
         </div>

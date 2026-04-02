@@ -5,8 +5,6 @@ interface ProgressCardProps {
   value: number;
   maxValue: number;
   subtitle?: string;
-  // We can keep a subtle 'highlight' option if you want one card to stand out, 
-  // but by default they should be unified.
   variant?: "default" | "highlight"; 
 }
 
@@ -16,25 +14,24 @@ const ProgressCard = ({ title, value, maxValue, subtitle, variant = "default" }:
 
   return (
     <div className={cn(
-      "p-6 rounded-2xl bg-card border transition-colors duration-200",
-      isHighlight ? "border-primary/50 shadow-sm" : "border-border hover:border-foreground/20"
+      "py-4 transition-colors duration-200 bg-transparent border-t border-border/40 space-y-3",
     )}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-end justify-between">
         <div>
-          <h3 className="font-semibold text-foreground tracking-tight">{title}</h3>
+          <h3 className={cn("font-medium tracking-tight text-foreground", isHighlight && "text-primary font-semibold")}>{title}</h3>
           {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
-        <span className="text-2xl font-bold text-foreground">
+        <span className={cn("text-2xl font-light", isHighlight ? "text-primary font-medium" : "text-foreground")}>
           {percentage}%
         </span>
       </div>
       
-      {/* Unified Progress Bar */}
-      <div className="h-2 rounded-full overflow-hidden bg-secondary">
+      {/* Ultra-thin Progress Line */}
+      <div className="h-px bg-border/40 w-full overflow-hidden">
         <div
           className={cn(
-            "h-full rounded-full transition-all duration-700 ease-out",
-            isHighlight ? "bg-primary" : "bg-foreground" 
+            "h-full transition-all duration-700 ease-out",
+            isHighlight ? "bg-primary" : "bg-muted-foreground/30" 
           )}
           style={{ width: `${percentage}%` }}
         />
