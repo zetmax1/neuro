@@ -1,291 +1,315 @@
+import React, { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  BookOpen, 
-  Video, 
-  FileText, 
-  CheckCircle2,
+import apiClient from "@/api/client";
+import { getResourcesByTopic, TopicResource } from "@/api/instructor.api";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Video,
+  FileText,
   Clock,
-  BarChart3,
-  Link as LinkIcon,
   ChevronRight,
-  AlertTriangle,
-  Info
+  Loader2,
+  ExternalLink,
+  Sparkles,
+  PlayCircle
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-const Course = () => {
-  const topic = {
-    title: "Trees & binary trees",
-    module: "Data structures",
-    description: "Learn about hierarchical data structures including binary trees, BSTs, and tree traversal algorithms.",
-    progress: 65,
-    estimatedTime: "2.5 hours",
-    difficulty: "intermediate",
-    materials: [
-      { type: "video", title: "Introduction to trees", duration: "12 min", completed: true },
-      { type: "text", title: "Tree terminology & properties", duration: "8 min", completed: true },
-      { type: "video", title: "Binary tree implementation", duration: "18 min", completed: true },
-      { type: "text", title: "Tree traversal methods", duration: "15 min", completed: false },
-      { type: "pdf", title: "Practice problems", duration: "20 min", completed: false },
-    ],
-    prerequisites: ["Arrays & lists", "Stacks & queues"],
-    relatedTopics: ["Graph fundamentals", "Heap data structure", "Binary search trees"],
-    whyThisTopic: "Trees are fundamental for understanding more complex data structures like graphs and heaps. They're essential for efficient searching, sorting, and hierarchical data representation.",
+interface TopicDetails {
+  id: number;
+  name: string;
+  slug: string;
+  parent: number | null;
+  description: string;
+  is_unlocked: boolean;
+}
+
+const Course: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [topic, setTopic] = useState<TopicDetails | null>(null);
+  const [resources, setResources] = useState<TopicResource[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeResourceId, setActiveResourceId] = useState<number | null>(null);
+
+  const getMediaUrl = (filePath: string) => {
+    if (!filePath) return "";
+    if (filePath.startsWith('http')) return filePath;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    return `${baseUrl.replace(/\/$/, '')}${filePath}`;
   };
 
-  // Mock prerequisite mastery scores (0–100).
-  // In a real system these come from the user's quiz history.
-  const prerequisiteMastery: Record<string, number> = {
-    "Arrays & lists":   82,
-    "Stacks & queues":  48, // below threshold — triggers warning
+  const getYoutubeEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
   };
-  const MASTERY_THRESHOLD = 60;
 
-  const weakPrereqs = topic.prerequisites.filter(
-    (p) => (prerequisiteMastery[p] ?? 0) < MASTERY_THRESHOLD,
-  );
-  const allReady = weakPrereqs.length === 0;
+  useEffect(() => {
+    const fetchTopicData = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      try {
+        // 1. Fetch topic details
+        const topicRes = await apiClient.get(`/api/curriculum/instructor/topics/${id}/`);
+        setTopic(topicRes.data);
 
-  const materialIcons = {
-    video: Video,
-    text: BookOpen,
-    pdf: FileText,
-  };
+        // 2. Fetch resources
+        const resourceData = await getResourcesByTopic(Number(id));
+        setResources(resourceData);
+        
+        // Auto-select first resource if available
+        if (resourceData.length > 0) {
+          setActiveResourceId(resourceData[0].id);
+        }
+      } catch (err: any) {
+        toast.error("Failed to load course materials");
+        navigate('/learning-path');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopicData();
+  }, [id, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+        <Header />
+        <main className="flex-1 flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-indigo-550 animate-spin mb-4" />
+          <p className="text-slate-500 font-medium">Loading syllabus...</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!topic) return null;
+
+  const activeResource = resources.find(r => r.id === activeResourceId);
+  const activeYoutubeEmbed = activeResource?.external_url ? getYoutubeEmbedUrl(activeResource.external_url) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
-          <Link to="/learning-path" className="hover:text-foreground transition-colors">
-            Learning path
-          </Link>
-          <ChevronRight className="w-4 h-4" />
-          <span>{topic.module}</span>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-foreground font-medium">{topic.title}</span>
+      
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl space-y-6">
+        
+        {/* Navigation & Breadcrumbs */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs font-semibold text-slate-500 animate-in fade-in">
+          <div className="flex items-center gap-1.5">
+            <Link to="/learning-path" className="hover:text-indigo-650 transition-colors flex items-center gap-1">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Pathways
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+            <span className="text-slate-800 truncate max-w-[200px] sm:max-w-xs">{topic.name}</span>
+          </div>
+          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 self-start sm:self-auto px-3 py-1 rounded-full">
+            Active Study Module
+          </Badge>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Topic Header */}
-            <div className="animate-slide-up">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <Badge variant="secondary">{topic.module}</Badge>
-                <Badge 
-                  className={cn(
-                    topic.difficulty === "beginner" && "bg-success/10 text-success border-success/20",
-                    topic.difficulty === "intermediate" && "bg-warning/10 text-warning border-warning/20",
-                    topic.difficulty === "advanced" && "bg-destructive/10 text-destructive border-destructive/20"
-                  )}
-                  variant="outline"
-                >
-                  {topic.difficulty}
-                </Badge>
-              </div>
-              <h1 className="text-3xl font-bold text-foreground mb-3">{topic.title}</h1>
-              <p className="text-lg text-muted-foreground mb-4">{topic.description}</p>
-              
-              <div className="flex flex-wrap items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{topic.estimatedTime}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-foreground font-medium">{topic.progress}% complete</span>
-                </div>
-              </div>
-            </div>
+        {/* Cinematic Cinema/Split Grid - Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* LEFT SECTION: Cinematic Viewer & Info (8 Columns in lg) */}
+          <div className="lg:col-span-8 space-y-6 flex flex-col order-1">
+            
+            {/* 1. Cinematic Player Pane */}
+            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between min-h-[460px] relative group">
+              {activeResource ? (
+                <div className="flex flex-col h-full flex-1">
+                  
+                  {/* Media Content */}
+                  <div className="relative bg-slate-900 aspect-video w-full flex-1 max-h-[480px] overflow-hidden">
+                    {activeYoutubeEmbed ? (
+                      <iframe
+                        src={`${activeYoutubeEmbed}?autoplay=0&rel=0&modestbranding=1`}
+                        title={activeResource.title}
+                        className="w-full h-full absolute inset-0 border-none"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : activeResource.resource_type === "VIDEO" && activeResource.file ? (
+                      <video
+                        src={getMediaUrl(activeResource.file)}
+                        controls
+                        className="w-full h-full absolute inset-0 object-contain bg-black"
+                      />
+                    ) : activeResource.resource_type === "DOCUMENT" && activeResource.file ? (
+                      <iframe
+                        src={`${getMediaUrl(activeResource.file)}#toolbar=0&navpanes=0`}
+                        title={activeResource.title}
+                        className="w-full h-full absolute inset-0 bg-white border-none"
+                      />
+                    ) : activeResource.content ? (
+                      <div className="w-full h-full p-6 sm:p-8 overflow-y-auto bg-slate-50/50 leading-relaxed text-sm text-slate-700">
+                        <div className="max-w-2xl mx-auto space-y-4">
+                          <h3 className="text-xl font-bold text-slate-900 mb-2">{activeResource.title}</h3>
+                          <div className="whitespace-pre-wrap">{activeResource.content}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-slate-400 italic">
+                        No viewer support for this resource.
+                      </div>
+                    )}
+                  </div>
 
-            {/* Progress Bar */}
-            <div className="animate-slide-up delay-100">
-              <Progress value={topic.progress} className="h-2" />
-            </div>
+                  {/* Media Info Footer */}
+                  <div className="p-6 bg-white border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="uppercase font-bold tracking-wider text-indigo-600">
+                          Now Studying
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {activeResource.duration_minutes || 10}m duration
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-905 text-base sm:text-lg leading-snug truncate">{activeResource.title}</h3>
+                    </div>
 
-            {/* Dependency Warning / Ready Banner */}
-            <div className="animate-slide-up delay-100">
-              {allReady ? (
-                <div className="flex items-center gap-3 p-3.5 rounded-xl border border-success/20 bg-success/6">
-                  <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">you're ready to start</p>
-                    <p className="text-xs text-muted-foreground">all prerequisites completed</p>
+                    {activeResource.external_url && (
+                      <a 
+                        href={activeResource.external_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="shrink-0 self-end sm:self-auto"
+                      >
+                        <Button variant="outline" size="sm" className="gap-1.5 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+                          External Link
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Button>
+                      </a>
+                    )}
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl border border-warning/25 bg-warning/6 space-y-2.5">
-                  <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">
-                        you may find this topic difficult
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        you haven't fully mastered:{" "}
-                        <span className="font-medium text-foreground">
-                          {weakPrereqs.join(", ")}
-                        </span>
-                      </p>
-                    </div>
+                /* No Active Resource State */
+                <div className="flex flex-col items-center justify-center p-12 text-center my-auto space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-indigo-550 shadow-inner">
+                    <PlayCircle className="w-8 h-8" />
                   </div>
-                  {/* Mini mastery bars for weak prereqs */}
-                  <div className="space-y-1.5 pl-6">
-                    {weakPrereqs.map((p) => (
-                      <div key={p}>
-                        <div className="flex justify-between text-xs mb-0.5">
-                          <span className="text-muted-foreground">{p}</span>
-                          <span className="text-warning">{prerequisiteMastery[p] ?? 0}%</span>
-                        </div>
-                        <div className="h-1 rounded-full bg-border overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-warning/70 transition-all duration-700"
-                            style={{ width: `${prerequisiteMastery[p] ?? 0}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">Select a Learning Resource</h3>
+                    <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
+                      Choose from the list of materials on the right to load video guides, documents, and slides.
+                    </p>
                   </div>
-                  <Link to="/assessment?topic=data-structures" className="pl-6 inline-block">
-                    <span className="text-xs text-warning hover:text-warning/80 font-medium underline underline-offset-2 transition-colors">
-                      take a quick review →
-                    </span>
-                  </Link>
                 </div>
               )}
             </div>
 
-            {/* Why This Topic */}
-            <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 animate-slide-up delay-100">
-              <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4 text-primary" />
-                Why This Topic?
-              </h3>
-              <p className="text-muted-foreground">{topic.whyThisTopic}</p>
+            {/* 2. Course Description & Info */}
+            <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-900">Syllabus Overview</h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {topic.description || "Learn fundamental properties, theoretical models, and practical applications of this curriculum node."}
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT SECTION: Materials Playlist & Quiz Launch (4 Columns in lg) */}
+          <div className="lg:col-span-4 space-y-6 order-2">
+            
+            {/* 1. Diagnostic Center */}
+            <div className="relative rounded-3xl overflow-hidden border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-transparent p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-sm">Diagnostic Assessment</h3>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Ready to demonstrate your mastery? Take the adaptive quiz. Achieving 70% or higher unlocks downstream topics!
+              </p>
+              <Link to={`/topic/${topic.id}/assessment`} className="block">
+                <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-2 shadow-sm">
+                  Launch Test Session
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
             </div>
 
-            {/* Learning Materials */}
-            <div className="animate-slide-up delay-200">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Learning materials</h2>
-              <div className="space-y-3">
-                {topic.materials.map((material, index) => {
-                  const Icon = materialIcons[material.type as keyof typeof materialIcons];
-                  return (
-                    <button
-                      key={index}
-                      className={cn(
-                        "w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left",
-                        material.completed 
-                          ? "bg-success/5 border-success/20" 
-                          : "bg-card border-border hover:border-primary hover:shadow-md"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center",
-                        material.completed ? "bg-success/10" : "bg-primary/10"
-                      )}>
-                        {material.completed ? (
-                          <CheckCircle2 className="w-5 h-5 text-success" />
-                        ) : (
-                          <Icon className="w-5 h-5 text-primary" />
+            {/* 2. Playlist Panel */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-550" />
+                  Playlist ({resources.length})
+                </h3>
+              </div>
+
+              {resources.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-4 text-center">No resources in playlist.</p>
+              ) : (
+                <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                  {resources.map((res) => {
+                    const isVideo = res.resource_type === "VIDEO";
+                    const isDoc = res.resource_type === "DOCUMENT";
+                    const isCurrent = activeResourceId === res.id;
+
+                    return (
+                      <button
+                        key={res.id}
+                        onClick={() => setActiveResourceId(res.id)}
+                        className={cn(
+                          "w-full text-left p-3.5 rounded-2xl border transition-all flex items-start gap-3",
+                          isCurrent 
+                            ? "bg-indigo-50/80 border-indigo-200 shadow-sm" 
+                            : "border-slate-100 bg-slate-50/40 hover:bg-slate-50 hover:border-slate-200"
                         )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={cn(
-                          "font-medium",
-                          material.completed ? "text-muted-foreground" : "text-foreground"
+                      >
+                        <div className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                          isCurrent
+                            ? "bg-indigo-650 text-white"
+                            : isVideo 
+                              ? "bg-red-100 text-red-650" 
+                              : "bg-blue-100 text-blue-650"
                         )}>
-                          {material.title}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {material.type.charAt(0).toUpperCase() + material.type.slice(1)} • {material.duration}
-                        </p>
-                      </div>
-                      <ArrowRight className={cn(
-                        "w-5 h-5",
-                        material.completed ? "text-muted" : "text-primary"
-                      )} />
-                    </button>
-                  );
-                })}
-              </div>
+                          {isVideo ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={cn(
+                            "text-xs font-bold truncate",
+                            isCurrent ? "text-indigo-950 font-extrabold" : "text-slate-700"
+                          )}>
+                            {res.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                            <span className="capitalize">{res.resource_type.toLowerCase()}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 font-semibold">
+                              <Clock className="w-3 h-3" />
+                              {res.duration_minutes || 10}m
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between pt-6 border-t border-border animate-slide-up delay-300">
-              <Button variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Previous topic
-              </Button>
-              <Button variant="hero">
-                Continue learning
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Prerequisites */}
-            <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-100">
-              <h3 className="font-semibold text-foreground mb-4">Prerequisites</h3>
-              <div className="space-y-2">
-                {topic.prerequisites.map((prereq) => (
-                  <div 
-                    key={prereq}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-success/5"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                    <span className="text-sm text-foreground">{prereq}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Related Topics */}
-            <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-200">
-              <h3 className="font-semibold text-foreground mb-4">Related topics</h3>
-              <div className="space-y-2">
-                {topic.relatedTopics.map((related) => (
-                  <button 
-                    key={related}
-                    className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-left"
-                  >
-                    <span className="text-sm text-foreground">{related}</span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="p-6 rounded-2xl bg-card border border-border animate-slide-up delay-300">
-              <h3 className="font-semibold text-foreground mb-4">Quick actions</h3>
-              <div className="space-y-2">
-                <Link to="/assessment?type=topic&topic=data-structures">
-                  <Button variant="outline" className="w-full justify-start">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Take assessment
-                  </Button>
-                </Link>
-                <Link to="/tutor">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Video className="w-4 h-4 mr-2" />
-                    Ask AI tutor
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
+
       </main>
     </div>
   );

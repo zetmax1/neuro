@@ -120,12 +120,14 @@ import { Button } from "@/components/ui/button";
 import { Brain, User, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuthContext();
+  const { logout } = useAuthContext();
+  const { user } = useAuthStore();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -135,6 +137,14 @@ const Header = () => {
     { path: "/courses", label: "Courses" },
     { path: "/tutor", label: "AI Tutor" },
   ];
+
+  if (user?.role === 'instructor' || user?.role === 'admin') {
+    navLinks.push({ path: "/instructor/curriculum-builder", label: "Curriculum Builder" });
+  }
+
+  if (user?.role === 'admin') {
+    navLinks.push({ path: "/admin/users", label: "User Management" });
+  }
 
   const handleLogout = () => {
     logout();

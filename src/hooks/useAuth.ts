@@ -1,41 +1,77 @@
-import { useState, useEffect, useCallback } from "react";
-
-interface User {
-  email: string;
-  name: string;
-  joinedAt: string;
-}
+import { useEffect, useCallback } from "react";
+import { useAuthStore, User } from "@/store/authStore";
+import { authApi } from "@/api/auth.api";
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    setCredentials,
+    setUser,
+    setLoading,
+    logout: storeLogout,
+  } = useAuthStore();
 
+  // On mount: if we have a token, try to fetch the user profile
   useEffect(() => {
-    const stored = localStorage.getItem("neurolearn_user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-    setIsLoading(false);
-  }, []);
+    const hydrate = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-  const login = useCallback((email: string, _password: string) => {
-    const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    const newUser: User = { email, name, joinedAt: new Date().toISOString() };
-    localStorage.setItem("neurolearn_user", JSON.stringify(newUser));
-    setUser(newUser);
-  }, []);
+      try {
+        const profile = await authApi.getProfile();
+        setUser(profile as User);
+      } catch {
+        // Token is invalid / expired and refresh also failed → clear
+        storeLogout();
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const signup = useCallback((email: string, _password: string, displayName?: string) => {
-    const name = displayName || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    const newUser: User = { email, name, joinedAt: new Date().toISOString() };
-    localStorage.setItem("neurolearn_user", JSON.stringify(newUser));
-    setUser(newUser);
-  }, []);
+    hydrate();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      // Call backend JWT endpoint
+      const data = await authApi.login({ email, password });
+
+      // Fetch user profile so we have full user data
+      let profile: User | null = null;
+      try {
+        profile = (await authApi.getProfile()) as User;
+      } catch {
+        // If profile fetch fails, proceed with partial data
+      }
+
+      setCredentials(data.access, profile);
+      return data;
+    },
+    [setCredentials],
+  );
+
+  const signup = useCallback(
+    async (userData: {
+      email: string;
+      password: string;
+      password_confirm: string;
+      first_name?: string;
+      last_name?: string;
+    }) => {
+      const data = await authApi.register(userData);
+      return data;
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("neurolearn_user");
-    setUser(null);
-  }, []);
+    storeLogout();
+  }, [storeLogout]);
 
-  return { user, isLoading, login, signup, logout };
+  return { user, isAuthenticated, isLoading, login, signup, logout };
 };

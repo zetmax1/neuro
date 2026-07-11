@@ -37,7 +37,13 @@ const levelColors = [
   "bg-success/20 border-success/30",
 ];
 
-const MasteryHeatmap = () => {
+interface MasteryHeatmapProps {
+  concepts?: MasteryData[];
+}
+
+const MasteryHeatmap = ({ concepts }: MasteryHeatmapProps) => {
+  const displayData = concepts || masteryData;
+
   return (
     <TooltipProvider>
       <div className="p-6 rounded-2xl border border-border bg-card shadow-sm">
@@ -55,7 +61,7 @@ const MasteryHeatmap = () => {
         </div>
 
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-3">
-          {masteryData.map((data, index) => (
+          {displayData.map((data, index) => (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <div

@@ -1,11 +1,19 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { User } from "@/store/authStore";
 
 interface AuthContextType {
-  user: { email: string; name: string; joinedAt: string } | null;
+  user: User | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => void;
-  signup: (email: string, password: string, name?: string) => void;
+  login: (email: string, password: string) => Promise<any>;
+  signup: (userData: {
+    email: string;
+    password: string;
+    password_confirm: string;
+    first_name?: string;
+    last_name?: string;
+  }) => Promise<any>;
   logout: () => void;
 }
 

@@ -1,28 +1,135 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowRight, BookOpen, Sparkles } from "lucide-react";
+import { Brain, ArrowRight, BookOpen, Sparkles, Loader2 } from "lucide-react";
+
+/* ─── Zod Schemas ─────────────────────────────────────────────────────── */
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const signupSchema = z
+  .object({
+    first_name: z.string().min(2, "First name must be at least 2 characters"),
+    last_name: z.string().min(2, "Last name must be at least 2 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/\d/, "Must contain at least one number")
+      .regex(/[\W_]/, "Must contain at least one special character"),
+    password_confirm: z.string(),
+  })
+  .refine((d) => d.password === d.password_confirm, {
+    message: "Passwords don't match",
+    path: ["password_confirm"],
+  });
+
+type LoginValues = z.infer<typeof loginSchema>;
+type SignupValues = z.infer<typeof signupSchema>;
+
+/* ─── Component ───────────────────────────────────────────────────────── */
 
 const Auth = () => {
   const [isSignup, setIsSignup] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { login, signup } = useAuthContext();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSignup) {
-      signup(email, password, name);
-    } else {
-      login(email, password);
+  // ── Login form ──
+  const loginForm = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  // ── Signup form ──
+  const signupForm = useForm<SignupValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+      password_confirm: "",
+    },
+  });
+
+  // Active form helpers
+  const activeForm = isSignup ? signupForm : loginForm;
+  const { formState: { isSubmitting } } = activeForm;
+
+  /* ── Handlers ─────────────────────────────────────────────────────────── */
+
+  const handleLogin = async (data: LoginValues) => {
+    setServerError(null);
+    try {
+      await login(data.email, data.password);
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (
+        msg.toLowerCase().includes("no active account") ||
+        msg.toLowerCase().includes("invalid") ||
+        msg.includes("401")
+      ) {
+        setServerError("Invalid email or password. Please try again.");
+      } else {
+        setServerError(msg || "Login failed. Please try again.");
+      }
     }
-    navigate("/dashboard");
   };
+
+  const handleSignup = async (data: SignupValues) => {
+    setServerError(null);
+    try {
+      await signup(data);
+      // Don't auto-login; switch to sign-in view with success banner
+      setSuccessMessage("Account created successfully! Please sign in.");
+      signupForm.reset();
+      setIsSignup(false);
+    } catch (err: any) {
+      // Try to parse Django DRF field-level errors
+      try {
+        const parsed = JSON.parse(err.message);
+        let hasField = false;
+
+        Object.entries(parsed).forEach(([key, value]) => {
+          if (["first_name", "last_name", "email", "password", "password_confirm"].includes(key)) {
+            signupForm.setError(key as keyof SignupValues, {
+              type: "server",
+              message: Array.isArray(value) ? (value as string[])[0] : String(value),
+            });
+            hasField = true;
+          }
+        });
+
+        if (!hasField) {
+          setServerError("Registration failed. Please check your details.");
+        }
+      } catch {
+        setServerError(err.message || "Registration failed. Please try again.");
+      }
+    }
+  };
+
+  const switchMode = () => {
+    setIsSignup(!isSignup);
+    setServerError(null);
+    setSuccessMessage(null);
+    loginForm.reset();
+    signupForm.reset();
+  };
+
+  /* ── Render ───────────────────────────────────────────────────────────── */
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -82,55 +189,157 @@ const Auth = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignup && (
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-sm">Display name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="How should we call you?"
-                  className="h-11"
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="h-11"
-              />
+          {/* ─ Success banner ─ */}
+          {successMessage && !isSignup && (
+            <div className="mb-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+              <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={4}
-                className="h-11"
-              />
-            </div>
+          )}
 
-            <Button type="submit" variant="hero" size="lg" className="w-full mt-2">
-              {isSignup ? "Create Account" : "Sign In"}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </form>
+          {/* ─ Error banner ─ */}
+          {serverError && (
+            <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300">{serverError}</p>
+            </div>
+          )}
+
+          {/* ────────────────── SIGN-UP FORM ────────────────── */}
+          {isSignup ? (
+            <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="first_name" className="text-sm">First name</Label>
+                  <Input
+                    id="first_name"
+                    {...signupForm.register("first_name")}
+                    placeholder="John"
+                    className={`h-11 ${signupForm.formState.errors.first_name ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  />
+                  {signupForm.formState.errors.first_name && (
+                    <p className="text-xs text-red-500">{signupForm.formState.errors.first_name.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="last_name" className="text-sm">Last name</Label>
+                  <Input
+                    id="last_name"
+                    {...signupForm.register("last_name")}
+                    placeholder="Doe"
+                    className={`h-11 ${signupForm.formState.errors.last_name ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  />
+                  {signupForm.formState.errors.last_name && (
+                    <p className="text-xs text-red-500">{signupForm.formState.errors.last_name.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="signup-email" className="text-sm">Email</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  {...signupForm.register("email")}
+                  placeholder="you@example.com"
+                  className={`h-11 ${signupForm.formState.errors.email ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                />
+                {signupForm.formState.errors.email && (
+                  <p className="text-xs text-red-500">{signupForm.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="signup-password" className="text-sm">Password</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  {...signupForm.register("password")}
+                  placeholder="••••••••"
+                  className={`h-11 ${signupForm.formState.errors.password ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                />
+                {signupForm.formState.errors.password && (
+                  <p className="text-xs text-red-500">{signupForm.formState.errors.password.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password_confirm" className="text-sm">Confirm password</Label>
+                <Input
+                  id="password_confirm"
+                  type="password"
+                  {...signupForm.register("password_confirm")}
+                  placeholder="••••••••"
+                  className={`h-11 ${signupForm.formState.errors.password_confirm ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                />
+                {signupForm.formState.errors.password_confirm && (
+                  <p className="text-xs text-red-500">{signupForm.formState.errors.password_confirm.message}</p>
+                )}
+              </div>
+
+              <Button type="submit" variant="hero" size="lg" className="w-full mt-2" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          ) : (
+            /* ────────────────── SIGN-IN FORM ────────────────── */
+            <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...loginForm.register("email")}
+                  placeholder="you@example.com"
+                  className={`h-11 ${loginForm.formState.errors.email ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                />
+                {loginForm.formState.errors.email && (
+                  <p className="text-xs text-red-500">{loginForm.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  {...loginForm.register("password")}
+                  placeholder="••••••••"
+                  className={`h-11 ${loginForm.formState.errors.password ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                />
+                {loginForm.formState.errors.password && (
+                  <p className="text-xs text-red-500">{loginForm.formState.errors.password.message}</p>
+                )}
+              </div>
+
+              <Button type="submit" variant="hero" size="lg" className="w-full mt-2" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
-              onClick={() => setIsSignup(!isSignup)}
+              onClick={switchMode}
               className="text-primary font-medium hover:underline"
             >
               {isSignup ? "Sign in" : "Sign up"}
