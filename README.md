@@ -51,3 +51,8 @@ Deployment options include:
 - Deploy to Vercel
 - Deploy to Netlify  
 - Self-host on your preferred platform
+
+## Thesis Defense Seeding
+
+Before defense: run `python manage.py seed_thesis_demo` to reset to a clean, presentable demo state.
+

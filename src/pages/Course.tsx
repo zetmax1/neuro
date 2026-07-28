@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import DiagnosticsPanel from "@/components/DiagnosticsPanel";
+
 
 interface TopicDetails {
   id: number;
@@ -220,7 +222,11 @@ const Course: React.FC = () => {
                 {topic.description || "Learn fundamental properties, theoretical models, and practical applications of this curriculum node."}
               </p>
             </div>
+
+            {/* 3. BKT + IRT Algorithm Diagnostics & Proof (Collapsed by default) */}
+            <DiagnosticsPanel topicId={topic.id} />
           </div>
+
 
           {/* RIGHT SECTION: Materials Playlist & Quiz Launch (4 Columns in lg) */}
           <div className="lg:col-span-4 space-y-6 order-2">
