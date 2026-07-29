@@ -1,22 +1,20 @@
 import React from 'react';
 import { Question } from '@/api/assessment.api';
+import { HelpCircle, BookOpen } from 'lucide-react';
 
 interface QuestionDisplayProps {
   question: Question;
+  questionNumber?: number;
 }
 
-const QuestionDisplay: React.FC<QuestionDisplayProps> = ({ question }) => {
-  const getDifficultyStyles = (diff: number) => {
-    if (diff <= 3) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    if (diff <= 7) return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-red-100 text-red-800 border-red-200';
+const QuestionDisplay: React.FC<QuestionDisplayProps> = ({ question, questionNumber }) => {
+  const getDifficultyBadge = (diff: number) => {
+    if (diff <= 3) return { label: 'Easy', style: 'bg-emerald-50 text-emerald-700 border-emerald-200/80' };
+    if (diff <= 7) return { label: 'Medium', style: 'bg-amber-50 text-amber-700 border-amber-200/80' };
+    return { label: 'Hard', style: 'bg-rose-50 text-rose-700 border-rose-200/80' };
   };
 
-  const getDifficultyLabel = (diff: number) => {
-    if (diff <= 3) return 'Easy';
-    if (diff <= 7) return 'Medium';
-    return 'Hard';
-  };
+  const difficultyInfo = getDifficultyBadge(question.difficulty);
 
   const getMediaUrl = (filePath: string) => {
     if (filePath.startsWith('http')) return filePath;
@@ -26,26 +24,38 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({ question }) => {
 
   return (
     <div className="mb-6 font-sans">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-          {question.topic_name}
-        </span>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getDifficultyStyles(question.difficulty)}`}>
-          {getDifficultyLabel(question.difficulty)}
-        </span>
+      {/* Top Meta Pill Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+            {question.topic_name}
+          </span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${difficultyInfo.style}`}>
+            {difficultyInfo.label}
+          </span>
+        </div>
+
+        {questionNumber && (
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl flex items-center gap-1">
+            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+            Question #{questionNumber}
+          </span>
+        )}
       </div>
 
-      <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 leading-tight mb-4">
+      {/* Main Question Text */}
+      <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug mb-5 tracking-tight">
         {question.text}
       </h2>
 
-      {/* Render optional question image illustration */}
+      {/* Question Image Preview */}
       {question.image && (
-        <div className="my-5 rounded-2xl overflow-hidden border border-slate-200 shadow-sm max-h-[320px] flex justify-center bg-slate-50 p-2">
+        <div className="my-6 rounded-2xl overflow-hidden border border-slate-200 shadow-sm max-h-[360px] flex justify-center bg-slate-900/5 p-3">
           <img 
             src={getMediaUrl(question.image)} 
-            alt="Question illustration" 
-            className="object-contain max-h-[300px] rounded-xl"
+            alt="Question Diagram" 
+            className="object-contain max-h-[330px] rounded-xl shadow-md"
           />
         </div>
       )}

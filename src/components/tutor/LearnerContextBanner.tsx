@@ -1,4 +1,4 @@
-import { Sparkles, Target, AlertTriangle } from "lucide-react";
+import { Target, AlertTriangle } from "lucide-react";
 
 interface LearnerContextBannerProps {
   currentTopic: string;
@@ -23,7 +23,7 @@ export const LearnerContextBanner = ({
     <div className="mb-6 flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-          <Sparkles className="w-4 h-4 text-primary" />
+          <Target className="w-4 h-4 text-primary" />
           {currentTopic}
         </div>
         <span className="text-muted-foreground/30">•</span>

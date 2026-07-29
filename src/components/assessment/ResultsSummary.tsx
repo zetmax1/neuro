@@ -252,7 +252,7 @@ export const ResultsSummary = ({ results, onContinue, onRetake }: ResultsSummary
       {recommendations.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Target className="w-5 h-5 text-primary" />
             What You Should Learn Next
           </h3>
           <div className="space-y-3">

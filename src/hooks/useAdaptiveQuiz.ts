@@ -8,6 +8,7 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState<boolean>(false);
+  const [noQuestions, setNoQuestions] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -28,14 +29,19 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
       }
     } catch (err: any) {
       if (err.response?.status === 404) {
-        setSessionComplete(true);
+        if (err.response?.data?.reason === 'no_questions') {
+          setNoQuestions(true);
+        } else {
+          setSessionComplete(true);
+        }
       } else {
-        setError(err instanceof Error ? err : new Error(err?.message || 'Failed to fetch question'));
+        setError(err instanceof Error ? err : new Error(err?.response?.data?.detail || err?.message || 'Failed to fetch question'));
       }
     } finally {
       setIsLoading(false);
     }
   }, [topicId]);
+
 
   // Initial fetch
   useEffect(() => {
@@ -114,6 +120,7 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
     isSubmitting,
     feedback,
     sessionComplete,
+    noQuestions,
     isLoading,
     error,
     timeLeft,
@@ -121,3 +128,4 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
     handleSubmit,
   };
 };
+

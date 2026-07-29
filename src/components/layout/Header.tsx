@@ -134,9 +134,11 @@ const Header = () => {
   const navLinks = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/learning-path", label: "Learning Path" },
+    { path: "/assessment", label: "Assessments" },
     { path: "/courses", label: "Courses" },
     { path: "/tutor", label: "AI Tutor" },
   ];
+
 
   if (user?.role === 'instructor' || user?.role === 'admin') {
     navLinks.push({ path: "/instructor/curriculum-builder", label: "Curriculum Builder" });

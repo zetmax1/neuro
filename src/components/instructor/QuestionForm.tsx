@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createQuestion, QuestionPayload } from '@/api/instructor.api';
+import { createQuestion, updateQuestion, QuestionPayload, QuestionResponse } from '@/api/instructor.api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save, Plus, X } from 'lucide-react';
 
 const questionSchema = z.object({
   text: z.string().min(5, "Question text must be at least 5 characters"),
@@ -13,6 +13,7 @@ const questionSchema = z.object({
   explanation: z.string().min(5, "Explanation must be at least 5 characters"),
   choices: z.array(
     z.object({
+      id: z.number().optional(),
       text: z.string().min(1, "Choice text is required"),
       is_correct: z.boolean(),
     })
@@ -27,11 +28,14 @@ type QuestionFormValues = z.infer<typeof questionSchema>;
 
 interface QuestionFormProps {
   topicId: number;
+  editingQuestion?: QuestionResponse | null;
   onSuccess?: () => void;
+  onCancelEdit?: () => void;
 }
 
-const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
+const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, editingQuestion, onSuccess, onCancelEdit }) => {
   const [loading, setLoading] = useState(false);
+  const isEditing = !!editingQuestion;
 
   const {
     register,
@@ -61,6 +65,41 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
     name: "choices"
   });
 
+  // Reset form when editingQuestion changes
+  useEffect(() => {
+    if (editingQuestion) {
+      const choices = editingQuestion.choices.map((c, idx) => ({
+        id: c.id,
+        text: c.text,
+        is_correct: 'is_correct' in c ? (c as any).is_correct : idx === 0
+      }));
+
+      // Ensure 4 choices
+      while (choices.length < 4) {
+        choices.push({ text: "", is_correct: false });
+      }
+
+      reset({
+        text: editingQuestion.text,
+        difficulty: editingQuestion.difficulty,
+        explanation: editingQuestion.explanation || "",
+        choices: choices.slice(0, 4)
+      });
+    } else {
+      reset({
+        text: "",
+        difficulty: 2,
+        explanation: "",
+        choices: [
+          { text: "", is_correct: true },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+        ]
+      });
+    }
+  }, [editingQuestion, reset]);
+
   const handleCorrectChoiceChange = (selectedIndex: number) => {
     const currentChoices = getValues("choices");
     const updatedChoices = currentChoices.map((choice, idx) => ({
@@ -81,10 +120,14 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
         choices: values.choices,
       };
 
-      await createQuestion(payload);
-      toast.success("Question created successfully");
+      if (isEditing && editingQuestion) {
+        await updateQuestion(editingQuestion.id, payload);
+        toast.success("Question updated successfully!");
+      } else {
+        await createQuestion(payload);
+        toast.success("Question created successfully!");
+      }
       
-      // Reset form but keep difficulty
       reset({
         text: "",
         difficulty: values.difficulty,
@@ -99,15 +142,24 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
 
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to create question");
+      toast.error(err.response?.data?.detail || `Failed to ${isEditing ? 'update' : 'create'} question`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-bold text-slate-900">Add Question to Bank</h3>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 className="text-lg font-bold text-slate-900">
+          {isEditing ? `Edit Question #${editingQuestion.id}` : "Add Question to Bank"}
+        </h3>
+        {isEditing && onCancelEdit && (
+          <Button type="button" variant="ghost" size="sm" onClick={onCancelEdit} className="text-slate-500 gap-1">
+            <X className="w-4 h-4" /> Cancel Edit
+          </Button>
+        )}
+      </div>
 
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-2">Question Text</label>
@@ -127,9 +179,9 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
             {...register("difficulty")}
             className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm bg-white"
           >
-            <option value="1">Easy</option>
-            <option value="2">Medium</option>
-            <option value="3">Hard</option>
+            <option value="1">Easy (1 pt)</option>
+            <option value="2">Medium (2 pt)</option>
+            <option value="3">Hard (3 pt)</option>
           </select>
           {errors.difficulty && <p className="text-xs text-red-500 mt-1 font-medium">{errors.difficulty.message}</p>}
         </div>
@@ -156,7 +208,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
                 name="correct-choice"
                 checked={getValues(`choices.${index}.is_correct`)}
                 onChange={() => handleCorrectChoiceChange(index)}
-                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
               />
               <input
                 {...register(`choices.${index}.text` as const)}
@@ -169,19 +221,27 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, onSuccess }) => {
         {errors.choices && <p className="text-xs text-red-500 mt-2 font-medium">{errors.choices.message}</p>}
       </div>
 
-      <div className="flex justify-end pt-2">
+      <div className="flex items-center justify-end gap-3 pt-2">
+        {isEditing && onCancelEdit && (
+          <Button type="button" variant="outline" onClick={onCancelEdit} className="h-11 px-5">
+            Cancel
+          </Button>
+        )}
         <Button
           type="submit"
           disabled={loading}
-          className="w-full sm:w-auto px-8 h-12 text-sm shadow-md shadow-indigo-100"
+          className="px-8 h-11 text-sm font-bold shadow-md shadow-indigo-100 gap-2"
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating...
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {isEditing ? "Updating..." : "Creating..."}
             </>
           ) : (
-            "Create Question"
+            <>
+              {isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {isEditing ? "Update Question" : "Create Question"}
+            </>
           )}
         </Button>
       </div>

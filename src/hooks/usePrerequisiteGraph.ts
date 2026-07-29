@@ -51,7 +51,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   return { nodes, edges };
 };
 
-export const usePrerequisiteGraph = () => {
+export const usePrerequisiteGraph = (selectedRootId?: number | null) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -73,8 +73,36 @@ export const usePrerequisiteGraph = () => {
     try {
       const graphData = await getPrerequisiteGraph();
 
-      const flowNodes: Node[] = graphData.nodes.map((gn: GraphNode) => ({
-        id: gn.id,
+      let rawNodes = graphData.nodes;
+      let rawEdges = graphData.edges;
+
+      // Filter nodes if selectedRootId is provided
+      if (selectedRootId !== null && selectedRootId !== undefined) {
+        // Find node matching selectedRootId or its connected children
+        const rootIdStr = String(selectedRootId);
+        const validNodeIds = new Set<string>();
+        validNodeIds.add(rootIdStr);
+
+        // Collect descendant nodes reachable from root
+        let added = true;
+        while (added) {
+          added = false;
+          rawEdges.forEach((e) => {
+            if (validNodeIds.has(String(e.source)) && !validNodeIds.has(String(e.target))) {
+              validNodeIds.add(String(e.target));
+              added = true;
+            }
+          });
+        }
+
+        rawNodes = rawNodes.filter((gn) => validNodeIds.has(String(gn.id)));
+        rawEdges = rawEdges.filter(
+          (ge) => validNodeIds.has(String(ge.source)) && validNodeIds.has(String(ge.target))
+        );
+      }
+
+      const flowNodes: Node[] = rawNodes.map((gn: GraphNode) => ({
+        id: String(gn.id),
         type: 'customTopic',
         position: { x: 0, y: 0 },
         data: {
@@ -84,10 +112,10 @@ export const usePrerequisiteGraph = () => {
         },
       }));
 
-      const flowEdges: Edge[] = graphData.edges.map((ge: GraphEdge) => ({
+      const flowEdges: Edge[] = rawEdges.map((ge: GraphEdge) => ({
         id: ge.id,
-        source: ge.source,
-        target: ge.target,
+        source: String(ge.source),
+        target: String(ge.target),
         type: 'smoothstep',
         animated: true,
         style: { stroke: '#6366f1', strokeWidth: 2 },
@@ -105,11 +133,12 @@ export const usePrerequisiteGraph = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedRootId]);
 
   useEffect(() => {
     fetchAndLayoutGraph();
   }, [fetchAndLayoutGraph]);
+
 
   return {
     nodes,

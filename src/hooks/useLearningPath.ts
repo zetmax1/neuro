@@ -71,9 +71,29 @@ const flattenTree = (nestedNodes: any[]): TopicNode[] => {
   return flat;
 };
 
-export const useLearningPath = () => {
+export interface RootTopicInfo {
+  id: number;
+  name: string;
+  slug?: string;
+  mastery_percentage: number;
+  is_unlocked: boolean;
+  total_submodules: number;
+}
+
+const countSubmodules = (node: any): number => {
+  let count = 1;
+  if (node.children && Array.isArray(node.children)) {
+    node.children.forEach((child: any) => {
+      count += countSubmodules(child);
+    });
+  }
+  return count;
+};
+
+export const useLearningPath = (selectedRootId?: number | null) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [rootTopics, setRootTopics] = useState<RootTopicInfo[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -92,7 +112,25 @@ export const useLearningPath = () => {
     setError(null);
     try {
       const nestedTopics = await getLearningPathTree();
-      const topics: TopicNode[] = flattenTree(nestedTopics);
+
+      // Extract root topics list for left sidebar
+      const rootsInfo: RootTopicInfo[] = nestedTopics.map((rt: any) => ({
+        id: Number(rt.id),
+        name: rt.name,
+        slug: rt.slug,
+        mastery_percentage: rt.mastery_percentage ?? 0,
+        is_unlocked: rt.is_unlocked ?? true,
+        total_submodules: countSubmodules(rt),
+      }));
+      setRootTopics(rootsInfo);
+
+      // Filter tree if a specific root curriculum is selected
+      let filteredTree = nestedTopics;
+      if (selectedRootId !== null && selectedRootId !== undefined) {
+        filteredTree = nestedTopics.filter((rt: any) => Number(rt.id) === Number(selectedRootId));
+      }
+
+      const topics: TopicNode[] = flattenTree(filteredTree);
       
       const initialNodes: Node[] = [];
       const initialEdges: Edge[] = [];
@@ -112,17 +150,21 @@ export const useLearningPath = () => {
 
         // Construct edges based on parent_id to build the DAG
         if (topic.parent_id !== null && topic.parent_id !== undefined) {
-          initialEdges.push({
-            id: `e-${topic.parent_id}-${topic.id}`,
-            source: String(topic.parent_id),
-            target: String(topic.id),
-            type: 'smoothstep',
-            animated: topic.is_unlocked, // Animate edges to unlocked topics!
-            style: { 
-              stroke: topic.is_unlocked ? '#6366f1' : '#cbd5e1', 
-              strokeWidth: 2 
-            },
-          });
+          // Only add edge if parent node is also in topics list
+          const parentExists = topics.some((t) => String(t.id) === String(topic.parent_id));
+          if (parentExists) {
+            initialEdges.push({
+              id: `e-${topic.parent_id}-${topic.id}`,
+              source: String(topic.parent_id),
+              target: String(topic.id),
+              type: 'smoothstep',
+              animated: topic.is_unlocked, // Animate edges to unlocked topics!
+              style: { 
+                stroke: topic.is_unlocked ? '#6366f1' : '#cbd5e1', 
+                strokeWidth: 2 
+              },
+            });
+          }
         }
       });
 
@@ -139,7 +181,7 @@ export const useLearningPath = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedRootId]);
 
   useEffect(() => {
     fetchAndLayoutGraph();
@@ -148,6 +190,7 @@ export const useLearningPath = () => {
   return { 
     nodes, 
     edges, 
+    rootTopics,
     onNodesChange, 
     onEdgesChange, 
     isLoading, 
@@ -155,3 +198,4 @@ export const useLearningPath = () => {
     refetch: fetchAndLayoutGraph 
   };
 };
+

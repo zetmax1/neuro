@@ -90,7 +90,47 @@ export const getQuestionsByTopic = async (topicId: number): Promise<QuestionResp
   return response.data;
 };
 
+/**
+ * Deletes a question from the question bank.
+ */
+export const deleteQuestion = async (id: number): Promise<void> => {
+  await apiClient.delete(`/api/assessments/instructor/questions/${id}/`);
+};
+
+/**
+ * Updates an existing question in the question bank.
+ */
+export const updateQuestion = async (id: number, question: Partial<QuestionPayload>): Promise<QuestionResponse> => {
+  const response = await apiClient.put(`/api/assessments/instructor/questions/${id}/`, question);
+  return response.data;
+};
+
+/**
+ * Bulk imports questions from Excel or Word template.
+ */
+export const importQuestions = async (topicId: number, file: File): Promise<{ detail: string; imported_count: number }> => {
+  const formData = new FormData();
+  formData.append('topic_id', String(topicId));
+  formData.append('file', file);
+
+  const response = await apiClient.post('/api/assessments/instructor/questions_import/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
+/**
+ * Downloads question import template ("shablon") in Excel or Word format.
+ */
+export const downloadQuestionTemplate = (format: 'excel' | 'word' = 'excel'): void => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  window.open(`${baseUrl.replace(/\/$/, '')}/api/assessments/instructor/templates/questions/?file_format=${format}`, '_blank');
+};
+
 // Curriculum Resource APIs
+
 export interface TopicResource {
   id: number;
   topic: number;
@@ -125,4 +165,5 @@ export const createResource = async (formData: FormData): Promise<TopicResource>
 export const deleteResource = async (id: number): Promise<void> => {
   await apiClient.delete(`/api/curriculum/instructor/resources/${id}/`);
 };
+
 

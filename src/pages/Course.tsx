@@ -15,13 +15,13 @@ import {
   ChevronRight,
   Loader2,
   ExternalLink,
-  Sparkles,
+  HelpCircle,
   PlayCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DiagnosticsPanel from "@/components/DiagnosticsPanel";
-
+import PdfViewer from "@/components/PdfViewer";
 
 interface TopicDetails {
   id: number;
@@ -133,7 +133,7 @@ const Course: React.FC = () => {
                 <div className="flex flex-col h-full flex-1">
                   
                   {/* Media Content */}
-                  <div className="relative bg-slate-900 aspect-video w-full flex-1 max-h-[480px] overflow-hidden">
+                  <div className="relative bg-slate-900 aspect-video w-full flex-1 min-h-[460px] max-h-[560px] overflow-hidden">
                     {activeYoutubeEmbed ? (
                       <iframe
                         src={`${activeYoutubeEmbed}?autoplay=0&rel=0&modestbranding=1`}
@@ -149,10 +149,9 @@ const Course: React.FC = () => {
                         className="w-full h-full absolute inset-0 object-contain bg-black"
                       />
                     ) : activeResource.resource_type === "DOCUMENT" && activeResource.file ? (
-                      <iframe
-                        src={`${getMediaUrl(activeResource.file)}#toolbar=0&navpanes=0`}
-                        title={activeResource.title}
-                        className="w-full h-full absolute inset-0 bg-white border-none"
+                      <PdfViewer 
+                        url={getMediaUrl(activeResource.file)} 
+                        title={activeResource.title} 
                       />
                     ) : activeResource.content ? (
                       <div className="w-full h-full p-6 sm:p-8 overflow-y-auto bg-slate-50/50 leading-relaxed text-sm text-slate-700">
@@ -235,7 +234,7 @@ const Course: React.FC = () => {
             <div className="relative rounded-3xl overflow-hidden border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-transparent p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
-                  <Sparkles className="w-4 h-4" />
+                  <HelpCircle className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-slate-900 text-sm">Diagnostic Assessment</h3>
               </div>
