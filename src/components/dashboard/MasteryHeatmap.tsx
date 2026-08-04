@@ -101,7 +101,7 @@ const MasteryHeatmap = ({ concepts }: MasteryHeatmapProps) => {
           ))}
         </div>
         <p className="mt-6 text-xs text-muted-foreground text-center">
-          Visualizing your personalized student model based on 12 key concepts.
+          Visualizing your personalized student model across {displayData.length} key concept{displayData.length === 1 ? "" : "s"}.
         </p>
       </div>
     </TooltipProvider>

@@ -311,8 +311,10 @@ const Dashboard: React.FC = () => {
           <ProgressCard
             title="Current Streak"
             value={dashboardData.current_streak}
-            maxValue={10}
+            maxValue={7}
             subtitle="Days in a row"
+            showPercentage={false}
+            unit="days"
           />
           <ProgressCard
             title="Assessments"
@@ -379,7 +381,11 @@ const Dashboard: React.FC = () => {
                 <RecommendationCard
                   type="revise"
                   title={needsRevisionTopic.name}
-                  description={`Your mastery is currently at ${Math.round(needsRevisionTopic.mastery_percentage * 100)}%. A quick review will solidify this foundation.`}
+                  description={
+                    Math.round(needsRevisionTopic.mastery_percentage * 100) > 0
+                      ? `Your mastery is currently at ${Math.round(needsRevisionTopic.mastery_percentage * 100)}%. A quick review will solidify this foundation.`
+                      : `Start reviewing ${needsRevisionTopic.name} to reinforce foundational concepts.`
+                  }
                   action="Review"
                   onClick={() => navigate(`/topic/${needsRevisionTopic.id}`)}
                 />
@@ -389,7 +395,11 @@ const Dashboard: React.FC = () => {
                 <RecommendationCard
                   type="ready"
                   title={readyToAdvanceTopic.name}
-                  description={`You've shown strong progress at ${Math.round(readyToAdvanceTopic.mastery_percentage * 100)}%. Ready to tackle advanced concepts!`}
+                  description={
+                    Math.round(readyToAdvanceTopic.mastery_percentage * 100) > 0
+                      ? `You've shown strong progress at ${Math.round(readyToAdvanceTopic.mastery_percentage * 100)}%. Ready to tackle advanced concepts!`
+                      : `Topic unlocked! Begin exploring ${readyToAdvanceTopic.name} to build your skills.`
+                  }
                   action="Begin"
                   onClick={() => navigate(`/topic/${readyToAdvanceTopic.id}`)}
                 />

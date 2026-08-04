@@ -5,12 +5,26 @@ interface ProgressCardProps {
   value: number;
   maxValue: number;
   subtitle?: string;
-  variant?: "default" | "highlight"; 
+  variant?: "default" | "highlight";
+  showPercentage?: boolean;
+  unit?: string;
 }
 
-const ProgressCard = ({ title, value, maxValue, subtitle, variant = "default" }: ProgressCardProps) => {
-  const percentage = Math.round((value / maxValue) * 100);
+const ProgressCard = ({
+  title,
+  value,
+  maxValue,
+  subtitle,
+  variant = "default",
+  showPercentage = true,
+  unit,
+}: ProgressCardProps) => {
+  const percentage = Math.min(100, Math.round((value / Math.max(1, maxValue)) * 100));
   const isHighlight = variant === "highlight";
+
+  const displayValue = !showPercentage
+    ? `${value}${unit ? ` ${unit}` : ""}`
+    : `${percentage}%`;
 
   return (
     <div className={cn(
@@ -22,7 +36,7 @@ const ProgressCard = ({ title, value, maxValue, subtitle, variant = "default" }:
           {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
         <span className={cn("text-2xl font-light", isHighlight ? "text-primary font-medium" : "text-foreground")}>
-          {percentage}%
+          {displayValue}
         </span>
       </div>
       

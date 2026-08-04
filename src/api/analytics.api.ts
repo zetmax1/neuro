@@ -100,7 +100,7 @@ export const getDashboardOverview = async (): Promise<DashboardOverviewData> => 
     total_topics_mastered: raw.topics_mastered || 0,
     overall_accuracy: raw.overall_accuracy_pct || 0,
     weekly_goal_progress: Math.min(100, Math.round(((raw.total_submissions || 0) / 10) * 100)),
-    current_streak: 5, // Mock streak count since not directly provided in summary stats
+    current_streak: raw.current_streak !== undefined && raw.current_streak !== null ? raw.current_streak : 0,
     strongest_topic: strongest,
     weakest_topic: weakest,
     recent_activity,

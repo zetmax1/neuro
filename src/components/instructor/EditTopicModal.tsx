@@ -8,11 +8,20 @@ import { Button } from '@/components/ui/button';
 import { Loader2, X, Save, Trash2, Edit3 } from 'lucide-react';
 
 const topicSchema = z.object({
-  name: z.string().min(3, "Module title must be at least 3 characters"),
-  description: z.string().optional(),
-  parent: z.number().nullable().optional(),
-  pass_mark_percentage: z.coerce.number().min(1).max(100),
-  test_question_count: z.coerce.number().min(1).max(100),
+  name: z.string().min(2, "Module title must be at least 2 characters"),
+  description: z.string().optional().default(""),
+  parent: z.preprocess(
+    (val) => (val === "" || val === "null" || val === null || val === undefined ? null : Number(val)),
+    z.number().nullable()
+  ).default(null),
+  pass_mark_percentage: z.preprocess(
+    (val) => (val === "" || val === undefined ? 60 : Number(val)),
+    z.number().min(1).max(100)
+  ).default(60),
+  test_question_count: z.preprocess(
+    (val) => (val === "" || val === undefined ? 10 : Number(val)),
+    z.number().min(1).max(100)
+  ).default(10),
 });
 
 type TopicFormValues = z.infer<typeof topicSchema>;
@@ -64,7 +73,7 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
       const payload: Partial<TopicPayload> = {
         name: values.name,
         description: values.description,
-        parent: values.parent || null,
+        parent: values.parent,
         pass_mark_percentage: values.pass_mark_percentage,
         test_question_count: values.test_question_count,
       };
@@ -145,6 +154,7 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
+            {errors.parent && <p className="text-xs text-red-500 mt-1 font-semibold">{errors.parent.message}</p>}
           </div>
 
           <div>
