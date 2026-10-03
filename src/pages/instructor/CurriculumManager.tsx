@@ -7,6 +7,7 @@ import {
   createTopic, 
   updateTopic, 
   deleteTopic, 
+  ARCHIVED_TOPIC_MESSAGE,
   getQuestionsByTopic,
   getResourcesByTopic,
   createResource,
@@ -16,6 +17,7 @@ import {
   TopicResource
 } from '@/api/instructor.api';
 import QuestionForm from '@/components/instructor/QuestionForm';
+import { getApiErrorMessage } from '@/lib/apiError';
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -216,16 +218,20 @@ const CurriculumManager: React.FC = () => {
   };
 
   const handleDeleteTopic = async (topicId: number) => {
-    if (!window.confirm("Are you sure you want to delete this topic and all its descendants/questions? This action is irreversible.")) return;
+    if (!window.confirm("Delete this topic with all its descendants and questions? If learners have answered questions there, the branch is archived instead so their answers are kept.")) return;
     try {
-      await deleteTopic(topicId);
-      toast.success("Topic deleted successfully");
+      const result = await deleteTopic(topicId);
+      if (result.archived) {
+        toast.success(`${ARCHIVED_TOPIC_MESSAGE} (${result.archivedTopics ?? 1} topic(s)).`);
+      } else {
+        toast.success("Topic deleted successfully");
+      }
       setSelectedTopic(null);
       setQuestions([]);
       setResources([]);
       await loadData();
     } catch (err: any) {
-      toast.error("Failed to delete topic");
+      toast.error(getApiErrorMessage(err, "Failed to delete topic"));
     }
   };
 

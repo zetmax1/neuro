@@ -12,6 +12,8 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // D25: the last answer repeated a question answered within 24 h, so P(L) did not change.
+  const [isReviewRepeat, setIsReviewRepeat] = useState<boolean>(false);
 
   const fetchNext = useCallback(async () => {
     if (!topicId) return;
@@ -67,6 +69,7 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
       
       // Update UI state immediately to show correct/incorrect color feedback
       setFeedback(response.is_correct ? 'correct' : 'incorrect');
+      setIsReviewRepeat(response.source === 'review_repeat');
 
       // The crucial UX 1.5 second delay
       setTimeout(() => {
@@ -124,6 +127,7 @@ export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
     isLoading,
     error,
     timeLeft,
+    isReviewRepeat,
     handleSelection,
     handleSubmit,
   };

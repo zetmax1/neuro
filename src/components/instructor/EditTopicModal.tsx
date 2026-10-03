@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { updateTopic, deleteTopic, TopicResponse, TopicPayload } from '@/api/instructor.api';
+import { updateTopic, deleteTopic, TopicResponse, TopicPayload, ARCHIVED_TOPIC_MESSAGE } from '@/api/instructor.api';
+import { getApiErrorMessage } from '@/lib/apiError';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Loader2, X, Save, Trash2, Edit3 } from 'lucide-react';
@@ -90,17 +91,21 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete topic "${topic.name}"? This action cannot be undone.`)) {
+    if (!window.confirm(`Delete topic "${topic.name}" and its subtree? If learners have answered questions there, the branch is archived instead so their answers are kept.`)) {
       return;
     }
     setIsDeleting(true);
     try {
-      await deleteTopic(topic.id);
-      toast.success("Curriculum topic deleted successfully!");
+      const result = await deleteTopic(topic.id);
+      if (result.archived) {
+        toast.success(`${ARCHIVED_TOPIC_MESSAGE} (${result.archivedTopics ?? 1} topic(s)).`);
+      } else {
+        toast.success("Curriculum topic deleted successfully!");
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to delete topic");
+      toast.error(getApiErrorMessage(err, "Failed to delete topic"));
     } finally {
       setIsDeleting(false);
     }

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createQuestion, updateQuestion, QuestionPayload, QuestionResponse } from '@/api/instructor.api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/apiError';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, Plus, X } from 'lucide-react';
 
@@ -142,7 +143,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, editingQuestion, o
 
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || `Failed to ${isEditing ? 'update' : 'create'} question`);
+      toast.error(getApiErrorMessage(err, `Failed to ${isEditing ? 'update' : 'create'} question`));
     } finally {
       setLoading(false);
     }

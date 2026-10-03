@@ -16,6 +16,7 @@ import {
 import Header from '@/components/layout/Header';
 import DropzoneUploader from '@/components/instructor/DropzoneUploader';
 import QuestionForm from '@/components/instructor/QuestionForm';
+import { getApiErrorMessage } from '@/lib/apiError';
 import ImportTestModal from '@/components/instructor/ImportTestModal';
 import EditTopicModal from '@/components/instructor/EditTopicModal';
 import { Button } from '@/components/ui/button';
@@ -154,14 +155,18 @@ export const CurriculumBuilder: React.FC = () => {
   const handleDeleteQuestion = async (qId: number) => {
     if (!selectedQuizTopicId) return;
     try {
-      await deleteQuestion(qId);
-      toast.success("Quiz question deleted");
+      const result = await deleteQuestion(qId);
+      toast.success(
+        result.archived
+          ? "Learners have answered this question, so it was deactivated instead of deleted."
+          : "Quiz question deleted"
+      );
       if (editingQuestion?.id === qId) {
         setEditingQuestion(null);
       }
       loadQuestions(selectedQuizTopicId);
     } catch (err) {
-      toast.error("Failed to delete question");
+      toast.error(getApiErrorMessage(err, "Failed to delete question"));
     }
   };
 

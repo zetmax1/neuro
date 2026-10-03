@@ -18,6 +18,15 @@ export interface Question {
   choices: Choice[];
 }
 
+/** Ledger source of an answer. `review_repeat` answers do not change P(L) (D25). */
+export type AttemptSource =
+  | 'adaptive'
+  | 'test_session'
+  | 'review_repeat'
+  | 'seed'
+  | 'simulated'
+  | 'legacy';
+
 export interface SubmissionResponse {
   is_correct: boolean;
   explanation: string;
@@ -26,6 +35,8 @@ export interface SubmissionResponse {
   mastery_percentage: number;
   streak: number;
   next_question: Question | null;
+  source: AttemptSource;
+  attempt_no: number;
 }
 
 export interface AssessmentTest {
@@ -85,6 +96,8 @@ export interface SubmitTestSessionPayload {
 }
 
 export interface SubmitTestSessionResponse {
+  /** Stored TestSessionResult; the grade is not a mastery probability (D7). */
+  session_id: number;
   topic_id: number;
   topic_name: string;
   total_questions: number;

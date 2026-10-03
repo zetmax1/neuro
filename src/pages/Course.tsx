@@ -71,7 +71,12 @@ const Course: React.FC = () => {
           setActiveResourceId(resourceData[0].id);
         }
       } catch (err: any) {
-        toast.error("Failed to load course materials");
+        // Archived topics (D11) answer 404 like missing ones.
+        toast.error(
+          err?.response?.status === 404
+            ? "This topic is no longer available."
+            : "Failed to load course materials"
+        );
         navigate('/learning-path');
       } finally {
         setIsLoading(false);

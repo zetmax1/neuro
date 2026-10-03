@@ -27,13 +27,39 @@ export interface TopicPayload {
 
 export interface TopicResponse extends TopicPayload {
   id: number;
+  /** Archived topics are hidden from lists unless ?include_archived=true (D11). */
+  is_archived?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface QuestionResponse extends QuestionPayload {
   id: number;
+  /** Deactivated questions are hidden from lists unless ?include_inactive=true (D11). */
+  is_active?: boolean;
 }
+
+/**
+ * Outcome of deleting a topic or question (D11). Items that learners have
+ * answered are never deleted: the backend archives the topic subtree or
+ * deactivates the question instead and answers 200 `{"archived": true}`.
+ */
+export interface DeleteResult {
+  archived: boolean;
+  /** Size of the archived topic subtree (topics only). */
+  archivedTopics?: number;
+}
+
+export const ARCHIVED_TOPIC_MESSAGE =
+  "Learners have answered questions in this branch, so it was archived instead of deleted";
+
+const toDeleteResult = (data: unknown): DeleteResult => {
+  const body = (data ?? {}) as { archived?: unknown; archived_topics?: unknown };
+  return {
+    archived: body.archived === true,
+    archivedTopics: typeof body.archived_topics === "number" ? body.archived_topics : undefined,
+  };
+};
 
 /**
  * Fetches all topics for instructor curriculum management.
@@ -63,10 +89,11 @@ export const updateTopic = async (id: number, topic: Partial<TopicPayload>): Pro
 };
 
 /**
- * Deletes a curriculum topic.
+ * Deletes a curriculum topic, or archives its subtree when learners have answered in it.
  */
-export const deleteTopic = async (id: number): Promise<void> => {
-  await apiClient.delete(`/api/curriculum/instructor/topics/${id}/`);
+export const deleteTopic = async (id: number): Promise<DeleteResult> => {
+  const response = await apiClient.delete(`/api/curriculum/instructor/topics/${id}/`);
+  return toDeleteResult(response.data);
 };
 
 /**
@@ -91,10 +118,11 @@ export const getQuestionsByTopic = async (topicId: number): Promise<QuestionResp
 };
 
 /**
- * Deletes a question from the question bank.
+ * Deletes a question from the question bank, or deactivates it when learners have answered it.
  */
-export const deleteQuestion = async (id: number): Promise<void> => {
-  await apiClient.delete(`/api/assessments/instructor/questions/${id}/`);
+export const deleteQuestion = async (id: number): Promise<DeleteResult> => {
+  const response = await apiClient.delete(`/api/assessments/instructor/questions/${id}/`);
+  return toDeleteResult(response.data);
 };
 
 /**
