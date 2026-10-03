@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { importQuestions, downloadQuestionTemplate } from '@/api/instructor.api';
+import { getApiErrorMessage } from '@/lib/apiError';
 import { toast } from 'sonner';
 
 interface ImportTestModalProps {
@@ -53,7 +54,10 @@ export const ImportTestModal: React.FC<ImportTestModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to import questions. Please check the template format.");
+      // The backend lists problems per question (Y4, 2–4 options, one correct answer).
+      const firstError = err.response?.data?.errors?.[0];
+      const detail = getApiErrorMessage(err, "Failed to import questions. Please check the template format.");
+      toast.error(firstError ? `${detail} Question ${firstError.question}: ${firstError.message}` : detail);
     } finally {
       setIsUploading(false);
     }

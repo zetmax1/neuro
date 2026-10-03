@@ -46,6 +46,8 @@ const topicSchema = z.object({
   position: z.coerce.number().min(0, "Position must be positive"),
   parent: z.number().nullable(),
   is_unlocked: z.boolean().default(true),
+  // Stage 2: course = root; only topics hold questions (Y4).
+  kind: z.enum(["course", "section", "topic"]).optional(),
 });
 
 type TopicFormValues = z.infer<typeof topicSchema>;
@@ -160,7 +162,8 @@ const CurriculumManager: React.FC = () => {
       description: topic.description || "",
       position: topic.position || 0,
       parent: topic.parent ? Number(topic.parent) : null,
-      is_unlocked: topic.is_unlocked
+      is_unlocked: topic.is_unlocked,
+      kind: topic.kind,
     });
   };
 
@@ -176,7 +179,8 @@ const CurriculumManager: React.FC = () => {
       description: "",
       position: topics.length,
       parent: null,
-      is_unlocked: true
+      is_unlocked: true,
+      kind: "course",
     });
   };
 
@@ -192,7 +196,8 @@ const CurriculumManager: React.FC = () => {
       description: "",
       position: 0,
       parent: parentTopic.id,
-      is_unlocked: true
+      is_unlocked: true,
+      kind: "topic",
     });
   };
 
@@ -213,7 +218,7 @@ const CurriculumManager: React.FC = () => {
       }
       await loadData();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to save topic");
+      toast.error(getApiErrorMessage(err, "Failed to save topic"));
     }
   };
 
@@ -482,6 +487,20 @@ const CurriculumManager: React.FC = () => {
                       {errors.position && <p className="text-xs text-red-500 mt-1 font-medium">{errors.position.message}</p>}
                     </div>
 
+                    {watch("parent") !== null && (
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Kind</label>
+                        <select
+                          {...register("kind")}
+                          data-testid="node-kind-select"
+                          className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm bg-white"
+                        >
+                          <option value="topic">Topic (holds questions)</option>
+                          <option value="section">Section (groups topics)</option>
+                        </select>
+                      </div>
+                    )}
+
                     <div className="flex items-center pt-8 pl-2">
                       <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
                         <input 
@@ -670,11 +689,17 @@ const CurriculumManager: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Add New Question Component */}
-                  <QuestionForm 
-                    topicId={selectedTopic.id} 
-                    onSuccess={() => loadQuestions(selectedTopic.id)} 
-                  />
+                  {/* Add New Question Component — only topics hold questions (Y4) */}
+                  {selectedTopic.kind === 'topic' ? (
+                    <QuestionForm 
+                      topicId={selectedTopic.id} 
+                      onSuccess={() => loadQuestions(selectedTopic.id)} 
+                    />
+                  ) : (
+                    <p className="text-sm text-slate-500 italic" data-testid="questions-topic-only">
+                      Questions can only be added to topics. This node is a {selectedTopic.kind}.
+                    </p>
+                  )}
                 </div>
               )}
 

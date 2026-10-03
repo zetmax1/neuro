@@ -15,11 +15,16 @@ export interface QuestionPayload {
   choices: ChoicePayload[];
 }
 
+/** Node kinds (stage 2): only topics hold questions (Y4); a course is a root. */
+export type TopicKind = 'course' | 'section' | 'topic';
+
 export interface TopicPayload {
   id?: number;
   name: string;
   slug: string;
   parent: number | null;
+  /** Defaults on the backend: course for a root, topic otherwise. */
+  kind?: TopicKind;
   description?: string;
   position?: number;
   is_unlocked?: boolean;
@@ -27,6 +32,7 @@ export interface TopicPayload {
 
 export interface TopicResponse extends TopicPayload {
   id: number;
+  kind: TopicKind;
   /** Archived topics are hidden from lists unless ?include_archived=true (D11). */
   is_archived?: boolean;
   created_at: string;

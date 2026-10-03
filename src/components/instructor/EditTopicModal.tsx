@@ -111,7 +111,8 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
     }
   };
 
-  const possibleParents = allTopics.filter(t => t.id !== topic.id);
+  // Topics are leaves (stage 2): only courses and sections can be parents.
+  const possibleParents = allTopics.filter(t => t.id !== topic.id && t.kind !== 'topic');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">

@@ -61,6 +61,7 @@ const topicSchema = z.object({
     (val) => (val === "" || val === undefined ? 10 : Number(val)),
     z.number().min(1).max(50)
   ).default(10),
+  kind: z.enum(["topic", "section"]).default("topic"),
 });
 
 type TopicFormValues = z.infer<typeof topicSchema>;
@@ -209,6 +210,11 @@ export const CurriculumBuilder: React.FC = () => {
     ? [topics.find(t => t.id === selectedRootTopicId)!, ...activeSubtopics].filter(Boolean)
     : [];
 
+  // Y4: questions can only be attached to nodes of kind "topic".
+  const activeQuizTopics = activeCurriculumTopics.filter(t => t.kind === 'topic');
+  const firstQuizTopicId = (rootId: number | null) =>
+    topics.find(t => t.parent === rootId && t.kind === 'topic')?.id ?? null;
+
   const handleCreateRootTopic = async (values: TopicFormValues) => {
     try {
       const generatedSlug = values.name
@@ -234,10 +240,10 @@ export const CurriculumBuilder: React.FC = () => {
       await loadTopics();
       setSelectedRootTopicId(newTopic.id);
       setSelectedResourceTopicId(newTopic.id);
-      setSelectedQuizTopicId(newTopic.id);
+      setSelectedQuizTopicId(null); // a course holds no questions (Y4)
       setCurrentStep(2);
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to create root topic");
+      toast.error(getApiErrorMessage(err, "Failed to create root topic"));
     }
   };
 
@@ -255,6 +261,7 @@ export const CurriculumBuilder: React.FC = () => {
         slug: generatedSlug,
         description: values.description,
         parent: values.parent || selectedRootTopicId,
+        kind: values.kind,
         position: topics.length,
         is_unlocked: true,
         pass_mark_percentage: values.pass_mark_percentage,
@@ -263,10 +270,10 @@ export const CurriculumBuilder: React.FC = () => {
 
       await createTopic(payload);
       toast.success("Child module added!");
-      reset({ name: "", description: "", parent: selectedRootTopicId, pass_mark_percentage: 60, test_question_count: 10 });
+      reset({ name: "", description: "", parent: selectedRootTopicId, pass_mark_percentage: 60, test_question_count: 10, kind: "topic" });
       await loadTopics();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to add module");
+      toast.error(getApiErrorMessage(err, "Failed to add module"));
     }
   };
 
@@ -507,7 +514,7 @@ export const CurriculumBuilder: React.FC = () => {
                             const val = e.target.value ? Number(e.target.value) : null;
                             setSelectedRootTopicId(val);
                             setSelectedResourceTopicId(val);
-                            setSelectedQuizTopicId(val);
+                            setSelectedQuizTopicId(firstQuizTopicId(val));
                           }}
                           className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm bg-white font-semibold text-slate-800"
                         >
@@ -586,6 +593,18 @@ export const CurriculumBuilder: React.FC = () => {
                           placeholder="Brief topic overview."
                           className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">Kind</label>
+                        <select
+                          {...register("kind")}
+                          data-testid="node-kind-select"
+                          className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm bg-white"
+                        >
+                          <option value="topic">Topic (holds questions)</option>
+                          <option value="section">Section (groups topics)</option>
+                        </select>
                       </div>
 
                       <Button type="submit" disabled={isSubmitting} className="w-full h-11 shadow-sm gap-2 font-bold">
@@ -750,7 +769,8 @@ export const CurriculumBuilder: React.FC = () => {
                       onChange={(e) => setSelectedQuizTopicId(e.target.value ? Number(e.target.value) : null)}
                       className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500/20"
                     >
-                      {activeCurriculumTopics.map(t => (
+                      <option value="">{activeQuizTopics.length ? "-- Choose topic --" : "No topics yet (only topics hold questions)"}</option>
+                      {activeQuizTopics.map(t => (
                         <option key={t.id} value={t.id}>
                           {t.id === selectedRootTopicId ? `${t.name} (Root)` : t.name}
                         </option>

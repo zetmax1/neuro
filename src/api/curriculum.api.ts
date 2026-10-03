@@ -16,20 +16,44 @@ export interface GraphNode {
   data: {
     label: string;
     slug?: string;
+    /** Stage 2 knowledge-base fields (addendum A4-2). */
+    kind?: 'course' | 'section' | 'topic';
+    parent?: number | null;
+    pos?: number;
+    depth?: number;
+    /** Algorithm 2.2 level; topics only. */
+    lev?: number | null;
     is_unlocked: boolean;
     mastery_pct: number;
   };
 }
 
+/** A prerequisite relation (E_P) as the instructor entered it. */
 export interface GraphEdge {
   id: string;
   source: string;
   target: string;
+  prerequisite_id?: number;
+  weight?: number;
+}
+
+/** An edge of the inherited topic graph G_L. */
+export interface LeafGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  weight: number;
+  /** Produced only by section- or course-level relations. */
+  inherited: boolean;
+  /** Ids of the producing E_P relations. */
+  via: number[];
 }
 
 export interface PrerequisiteGraphResponse {
+  kb_version?: number;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  leaf_edges?: LeafGraphEdge[];
 }
 
 /**
