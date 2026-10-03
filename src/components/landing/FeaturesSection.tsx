@@ -21,8 +21,8 @@
 //   },
 //   {
 //     icon: MessageSquare,
-//     title: "Intelligent tutoring",
-//     description: "Context-aware AI assistant provides hints and explanations tailored to your learning style and current struggles.",
+//     title: "Guided practice",
+//     description: "Context-aware support provides hints and explanations tailored to your learning style and current struggles.",
 //     gradient: "gradient-primary",
 //   },
 //   {
@@ -109,8 +109,8 @@ const features = [
   },
   {
     icon: MessageSquare,
-    title: "Intelligent tutoring",
-    description: "Context-aware AI assistant provides hints and explanations tailored to your learning style and current struggles.",
+    title: "Guided practice",
+    description: "Context-aware support provides hints and explanations tailored to your learning style and current struggles.",
     colorClass: "text-violet-500",
     bgClass: "bg-violet-500/10 border-violet-500/20",
   },

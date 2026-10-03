@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -10,7 +11,6 @@ import Dashboard from "./pages/Dashboard";
 import LearningPath from "./pages/LearningPath";
 import Course from "./pages/Course";
 import Courses from "./pages/Courses";
-import Tutor from "./pages/Tutor";
 import Assessment from "./pages/Assessment";
 import Auth from "./pages/Auth";
 import KnowledgeSearch from "./pages/KnowledgeSearch";
@@ -22,6 +22,10 @@ import AdminRoute from "@/components/AdminRoute";
 import CurriculumManager from "./pages/instructor/CurriculumManager";
 import CurriculumBuilder from "./pages/instructor/CurriculumBuilder";
 import UserManagement from "./pages/admin/UserManagement";
+import { TUTOR_ENABLED } from "@/lib/features";
+
+// D24: the tutor is only bundled into a separate chunk and routed when enabled.
+const Tutor = lazy(() => import("./pages/Tutor"));
 
 const queryClient = new QueryClient();
 
@@ -44,7 +48,16 @@ const App = () => (
               <Route path="/course" element={<Course />} />
               <Route path="/topic/:id" element={<Course />} />
               <Route path="/courses" element={<Courses />} />
-              <Route path="/tutor" element={<Tutor />} />
+              {TUTOR_ENABLED && (
+                <Route
+                  path="/tutor"
+                  element={
+                    <Suspense fallback={null}>
+                      <Tutor />
+                    </Suspense>
+                  }
+                />
+              )}
               <Route path="/assessment" element={<Assessment />} />
               <Route path="/topic/:id/assessment" element={<QuizSession />} />
               <Route path="/mistakes" element={<Mistakes />} />

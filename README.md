@@ -2,7 +2,7 @@
 
 ## Project Info
 
-Knowledge Bloom is an educational platform designed to enhance learning through interactive assessments, personalized tutoring, and comprehensive progress tracking.
+Knowledge Bloom is an educational platform designed to enhance learning through interactive assessments, adaptive support, and comprehensive progress tracking.
 
 ## How to Work with this Codebase
 
@@ -32,6 +32,13 @@ npm run dev
 - Navigate to the desired file(s) in your local environment
 - Make your changes and save the files
 - Test the changes by running the development server
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `VITE_API_URL` | Backend base URL |
+| `VITE_ENABLE_TUTOR` | `true` shows the AI tutor page and menu entry. Off by default: the tutor is outside the thesis scope (D17, D24) |
 
 ## What technologies are used for this project?
 

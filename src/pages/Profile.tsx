@@ -37,7 +37,6 @@ const achievements = [
 const recentHistory = [
   { action: "Assessment completed", detail: "Sorting Algorithms — 92%", time: "2 hours ago" },
   { action: "Topic completed", detail: "Hash Tables & Applications", time: "Yesterday" },
-  { action: "AI Tutor session", detail: "Socratic mode — Binary Trees", time: "2 days ago" },
   { action: "Assessment completed", detail: "Graph Basics — 78%", time: "3 days ago" },
   { action: "Topic started", detail: "Dynamic Programming", time: "4 days ago" },
 ];

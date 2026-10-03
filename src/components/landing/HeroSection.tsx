@@ -75,7 +75,7 @@
 //             </div>
 //             <div className="flex items-center gap-2">
 //               <div className="w-2 h-2 rounded-full bg-accent" />
-//               <span className="text-sm">Intelligent tutoring</span>
+//               <span className="text-sm">Guided practice</span>
 //             </div>
 //           </div>
 //         </div>

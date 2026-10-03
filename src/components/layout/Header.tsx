@@ -17,7 +17,6 @@
 //     { path: "/learning-path", label: "Learning Path" },
 //     { path: "/courses", label: "Courses" },
 //     { path: "/search", label: "Search" },
-//     { path: "/tutor", label: "AI Tutor" },
 //   ];
 
 //   const handleLogout = () => {
@@ -121,6 +120,7 @@ import { Brain, User, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAuthStore } from "@/store/authStore";
+import { TUTOR_ENABLED } from "@/lib/features";
 
 const Header = () => {
   const location = useLocation();
@@ -136,9 +136,11 @@ const Header = () => {
     { path: "/learning-path", label: "Learning Path" },
     { path: "/assessment", label: "Assessments" },
     { path: "/courses", label: "Courses" },
-    { path: "/tutor", label: "AI Tutor" },
   ];
 
+  if (TUTOR_ENABLED) {
+    navLinks.push({ path: "/tutor", label: "AI Tutor" });
+  }
 
   if (user?.role === 'instructor' || user?.role === 'admin') {
     navLinks.push({ path: "/instructor/curriculum-builder", label: "Curriculum Builder" });

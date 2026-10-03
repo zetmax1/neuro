@@ -153,7 +153,6 @@ const Auth = () => {
           <div className="flex flex-col gap-3 text-left">
             {[
               { icon: BookOpen, text: "Personalized learning paths" },
-              { icon: Sparkles, text: "AI-powered tutoring in 4 modes" },
               { icon: ArrowRight, text: "Adaptive assessments that grow with you" },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 text-white/90">
