@@ -122,11 +122,23 @@ export const importQuestions = async (topicId: number, file: File): Promise<{ de
 };
 
 /**
- * Downloads question import template ("shablon") in Excel or Word format.
+ * Downloads the question import template ("shablon") in Excel or Word format.
+ * The endpoint is instructor-only, so the file is fetched with the auth header
+ * and saved through a temporary object URL.
  */
-export const downloadQuestionTemplate = (format: 'excel' | 'word' = 'excel'): void => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  window.open(`${baseUrl.replace(/\/$/, '')}/api/assessments/instructor/templates/questions/?file_format=${format}`, '_blank');
+export const downloadQuestionTemplate = async (format: 'excel' | 'word' = 'excel'): Promise<void> => {
+  const response = await apiClient.get<Blob>('/api/assessments/instructor/templates/questions/', {
+    params: { file_format: format },
+    responseType: 'blob',
+  });
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = format === 'word' ? 'quiz_import_shablon.docx' : 'quiz_import_shablon.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 };
 
 // Curriculum Resource APIs

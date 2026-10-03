@@ -98,7 +98,7 @@ export const ImportTestModal: React.FC<ImportTestModalProps> = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => downloadQuestionTemplate('excel')}
+              onClick={() => downloadQuestionTemplate('excel').catch(() => toast.error('Failed to download template'))}
               className="gap-2 border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold h-10 rounded-xl"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -108,7 +108,7 @@ export const ImportTestModal: React.FC<ImportTestModalProps> = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => downloadQuestionTemplate('word')}
+              onClick={() => downloadQuestionTemplate('word').catch(() => toast.error('Failed to download template'))}
               className="gap-2 border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold h-10 rounded-xl"
             >
               <FileText className="w-4 h-4 text-blue-600" />

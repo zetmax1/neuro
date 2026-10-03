@@ -3,8 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import apiClient from "@/api/client";
-import { getResourcesByTopic, TopicResource } from "@/api/instructor.api";
+import { getTopicDetail, getTopicResources, StudentTopicResource as TopicResource } from "@/api/curriculum.api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -61,11 +60,10 @@ const Course: React.FC = () => {
       setIsLoading(true);
       try {
         // 1. Fetch topic details
-        const topicRes = await apiClient.get(`/api/curriculum/instructor/topics/${id}/`);
-        setTopic(topicRes.data);
+        setTopic(await getTopicDetail(id));
 
         // 2. Fetch resources
-        const resourceData = await getResourcesByTopic(Number(id));
+        const resourceData = await getTopicResources(id);
         setResources(resourceData);
         
         // Auto-select first resource if available
