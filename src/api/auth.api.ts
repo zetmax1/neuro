@@ -12,6 +12,19 @@ export interface Profile {
   is_simulated: boolean;
   date_joined: string;
   role: Role;
+  /**
+   * Research consent (D42). Off until the learner turns it on, and nothing in
+   * the platform is gated on it. `research_pseudonym` is deliberately not
+   * here: it is the key an export row is filed under (D43).
+   */
+  research_consent: boolean;
+  research_consent_at: string | null;
+}
+
+/** The consent flag on its own, as `/api/me/consent/` reports it. */
+export interface ResearchConsent {
+  research_consent: boolean;
+  research_consent_at: string | null;
 }
 
 export interface LoginResponse {
@@ -36,6 +49,8 @@ export const authApi = {
     password_confirm: string;
     first_name?: string;
     last_name?: string;
+    /** D42: optional, and only ever true because the learner ticked the box. */
+    research_consent?: boolean;
   }) => {
     const response = await apiClient.post("/api/accounts/register/", userData);
     return response.data;
@@ -58,16 +73,41 @@ export const authApi = {
   },
 };
 
+/**
+ * Research consent (D42, addendum A4-13).
+ *
+ * Its own endpoint rather than a field of the profile update: consent is a
+ * decision of the learner about their own data, and it must not be flippable
+ * as a side effect of saving a name.
+ */
+export const consentApi = {
+  get: async (): Promise<ResearchConsent> => {
+    const response = await apiClient.get<ResearchConsent>("/api/me/consent/");
+    return response.data;
+  },
+
+  /** `false` withdraws it, which keeps the learner out of *future* exports. */
+  set: async (research_consent: boolean): Promise<ResearchConsent> => {
+    const response = await apiClient.patch<ResearchConsent>("/api/me/consent/", {
+      research_consent,
+    });
+    return response.data;
+  },
+};
+
 export interface AdminUser extends Profile {
   deleted_at: string | null;
 }
 
 export const usersApi = {
-  list: async (params: { role?: Role; simulated?: boolean } = {}): Promise<AdminUser[]> => {
+  list: async (
+    params: { role?: Role; simulated?: boolean; consent?: boolean } = {},
+  ): Promise<AdminUser[]> => {
     const response = await apiClient.get("/api/accounts/users/", {
       params: {
         ...(params.role ? { role: params.role } : {}),
         ...(params.simulated === undefined ? {} : { simulated: String(params.simulated) }),
+        ...(params.consent === undefined ? {} : { consent: String(params.consent) }),
       },
     });
     const data = response.data;

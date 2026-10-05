@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -7,7 +8,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowRight, BookOpen, Sparkles, Loader2 } from "lucide-react";
+import { Brain, ArrowRight, BookOpen, Loader2 } from "lucide-react";
 
 /* ─── Zod Schemas ─────────────────────────────────────────────────────── */
 
@@ -27,6 +28,8 @@ const signupSchema = z
       .regex(/\d/, "Must contain at least one number")
       .regex(/[\W_]/, "Must contain at least one special character"),
     password_confirm: z.string(),
+    // D42: off unless the learner ticks it. Registration must work without it.
+    research_consent: z.boolean().default(false),
   })
   .refine((d) => d.password === d.password_confirm, {
     message: "Passwords don't match",
@@ -39,6 +42,7 @@ type SignupValues = z.infer<typeof signupSchema>;
 /* ─── Component ───────────────────────────────────────────────────────── */
 
 const Auth = () => {
+  const { t } = useTranslation();
   const [isSignup, setIsSignup] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -60,6 +64,7 @@ const Auth = () => {
       email: "",
       password: "",
       password_confirm: "",
+      research_consent: false,
     },
   });
 
@@ -81,9 +86,9 @@ const Auth = () => {
         msg.toLowerCase().includes("invalid") ||
         msg.includes("401")
       ) {
-        setServerError("Invalid email or password. Please try again.");
+        setServerError(t("auth.login_failed"));
       } else {
-        setServerError(msg || "Login failed. Please try again.");
+        setServerError(msg || t("auth.login_failed"));
       }
     }
   };
@@ -97,9 +102,10 @@ const Auth = () => {
         password_confirm: data.password_confirm,
         first_name: data.first_name,
         last_name: data.last_name,
+        research_consent: data.research_consent,
       });
       // Don't auto-login; switch to sign-in view with success banner
-      setSuccessMessage("Account created successfully! Please sign in.");
+      setSuccessMessage(t("auth.signup_done"));
       signupForm.reset();
       setIsSignup(false);
     } catch (err: unknown) {
@@ -119,10 +125,10 @@ const Auth = () => {
         });
 
         if (!hasField) {
-          setServerError("Registration failed. Please check your details.");
+          setServerError(t("auth.signup_failed"));
         }
       } catch {
-        setServerError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+        setServerError(err instanceof Error ? err.message : t("auth.signup_failed"));
       }
     }
   };
@@ -185,13 +191,8 @@ const Auth = () => {
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              {isSignup ? "Create your account" : "Welcome back"}
+              {isSignup ? t("auth.signup_title") : t("auth.login_title")}
             </h2>
-            <p className="text-muted-foreground text-sm">
-              {isSignup
-                ? "Start your personalized learning journey today."
-                : "Pick up right where you left off."}
-            </p>
           </div>
 
           {/* ─ Success banner ─ */}
@@ -213,7 +214,7 @@ const Auth = () => {
             <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="first_name" className="text-sm">First name</Label>
+                  <Label htmlFor="first_name" className="text-sm">{t("auth.first_name")}</Label>
                   <Input
                     id="first_name"
                     {...signupForm.register("first_name")}
@@ -225,7 +226,7 @@ const Auth = () => {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="last_name" className="text-sm">Last name</Label>
+                  <Label htmlFor="last_name" className="text-sm">{t("auth.last_name")}</Label>
                   <Input
                     id="last_name"
                     {...signupForm.register("last_name")}
@@ -239,7 +240,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="signup-email" className="text-sm">Email</Label>
+                <Label htmlFor="signup-email" className="text-sm">{t("auth.email")}</Label>
                 <Input
                   id="signup-email"
                   type="email"
@@ -253,7 +254,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="signup-password" className="text-sm">Password</Label>
+                <Label htmlFor="signup-password" className="text-sm">{t("auth.password")}</Label>
                 <Input
                   id="signup-password"
                   type="password"
@@ -267,7 +268,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password_confirm" className="text-sm">Confirm password</Label>
+                <Label htmlFor="password_confirm" className="text-sm">{t("auth.password_confirm")}</Label>
                 <Input
                   id="password_confirm"
                   type="password"
@@ -280,15 +281,41 @@ const Auth = () => {
                 )}
               </div>
 
+              {/*
+                D42: research consent, optional and off unless ticked. The
+                four facts it has to state are in the dictionary, including
+                that an export already produced is not rewritten when consent
+                is withdrawn — an assurance the backend cannot keep is not one
+                worth printing.
+              */}
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <label className="flex items-start gap-2.5 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...signupForm.register("research_consent")}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary"
+                    data-testid="signup-consent"
+                  />
+                  <span className="font-medium leading-snug">{t("consent.short")}</span>
+                </label>
+                <ul className="space-y-0.5 pl-7 text-xs text-muted-foreground">
+                  <li>{t("consent.what")}</li>
+                  <li>{t("consent.why")}</li>
+                  <li>{t("consent.anonymous")}</li>
+                  <li>{t("consent.optional")}</li>
+                  <li>{t("consent.revoke")}</li>
+                </ul>
+              </div>
+
               <Button type="submit" variant="hero" size="lg" className="w-full mt-2" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating account...
+                    {t("auth.signup")}
                   </>
                 ) : (
                   <>
-                    Create Account
+                    {t("auth.signup")}
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -298,7 +325,7 @@ const Auth = () => {
             /* ────────────────── SIGN-IN FORM ────────────────── */
             <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -312,7 +339,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm">{t("auth.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -329,11 +356,11 @@ const Auth = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Signing in...
+                    {t("auth.login")}
                   </>
                 ) : (
                   <>
-                    Sign In
+                    {t("auth.login")}
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -342,12 +369,12 @@ const Auth = () => {
           )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignup ? t("auth.have_account") : t("auth.no_account")}{" "}
             <button
               onClick={switchMode}
               className="text-primary font-medium hover:underline"
             >
-              {isSignup ? "Sign in" : "Sign up"}
+              {isSignup ? t("auth.login") : t("auth.signup")}
             </button>
           </p>
         </div>

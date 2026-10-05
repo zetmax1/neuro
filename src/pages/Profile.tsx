@@ -1,7 +1,10 @@
-import { AlertCircle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
+import { consentApi } from "@/api/auth.api";
 import MasteryRatio from "@/components/common/MasteryRatio";
 import Header from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +26,12 @@ import { formatProbability, formatSigned } from "@/lib/format";
  *
  * The learner's own name is shown; where there is none the page says so
  * rather than printing "Learner".
+ *
+ * Research consent is managed here as well (D42, addendum 2.8): the four
+ * facts the learner needs, and one button. Withdrawal says in as many words
+ * that it applies to future exports and that files already produced are not
+ * rewritten — the backend cannot rewrite them, so promising otherwise would
+ * be a lie.
  */
 
 const Profile = () => {
@@ -102,6 +111,8 @@ const Profile = () => {
         </CardContent>
       </Card>
 
+      <ConsentCard />
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("profile.weekly")}</CardTitle>
@@ -130,6 +141,69 @@ const Profile = () => {
         </CardContent>
       </Card>
     </Shell>
+  );
+};
+
+/** Research consent, given and withdrawn in one place (D42). */
+const ConsentCard = () => {
+  const { t, i18n } = useTranslation();
+  const client = useQueryClient();
+  const consent = useQuery({ queryKey: ["me", "consent"], queryFn: consentApi.get });
+
+  const change = useMutation({
+    mutationFn: consentApi.set,
+    onSuccess: (data) => {
+      toast.success(t(data.research_consent ? "consent.saved" : "consent.withdrawn"));
+      void client.invalidateQueries({ queryKey: ["me", "consent"] });
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
+  if (consent.isLoading) return <Skeleton className="h-40 w-full" />;
+  if (consent.isError || !consent.data) return null;
+
+  const given = consent.data.research_consent;
+  const since = consent.data.research_consent_at;
+
+  return (
+    <Card data-testid="consent-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
+          {t("consent.title")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={given ? "default" : "secondary"} data-testid="consent-state">
+            {t(given ? "consent.given" : "consent.not_given")}
+          </Badge>
+          {given && since && (
+            <span className="text-xs text-muted-foreground">
+              {t("consent.since", { date: new Date(since).toLocaleDateString(i18n.language) })}
+            </span>
+          )}
+        </div>
+
+        <ul className="space-y-1 text-sm text-muted-foreground">
+          <li>{t("consent.what")}</li>
+          <li>{t("consent.why")}</li>
+          <li>{t("consent.anonymous")}</li>
+          <li>{t("consent.optional")}</li>
+          <li>{t("consent.revoke")}</li>
+        </ul>
+
+        <Button
+          size="sm"
+          variant={given ? "outline" : "default"}
+          onClick={() => change.mutate(!given)}
+          disabled={change.isPending}
+          data-testid="consent-toggle"
+        >
+          {t(given ? "consent.withdraw" : "consent.give")}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

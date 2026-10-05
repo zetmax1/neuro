@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, FlaskConical } from "lucide-react";
+import { AlertCircle, FlaskConical, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -30,6 +30,11 @@ import { useAuthStore } from "@/store/authStore";
  * their email before the @. Roles can be filtered and assigned, simulated
  * accounts (D13) are badged and can be hidden, and an account can be
  * deactivated — which is reversible, unlike the soft delete.
+ *
+ * The research consent column (D42) is read-only on purpose: consent belongs
+ * to the learner, and an administrator who could tick it on someone's behalf
+ * would make it worthless. It is shown and filtered here so the research set
+ * can be seen at a glance, not edited.
  */
 
 const ROLES: readonly Role[] = ["student", "instructor", "admin"];
@@ -40,13 +45,15 @@ const UserManagement = () => {
   const me = useAuthStore((state) => state.user);
   const [role, setRole] = useState<Role | "all">("all");
   const [hideSimulated, setHideSimulated] = useState(false);
+  const [consent, setConsent] = useState<"all" | "yes" | "no">("all");
 
   const users = useQuery({
-    queryKey: ["accounts", "users", role, hideSimulated],
+    queryKey: ["accounts", "users", role, hideSimulated, consent],
     queryFn: () =>
       usersApi.list({
         ...(role === "all" ? {} : { role }),
         ...(hideSimulated ? { simulated: false } : {}),
+        ...(consent === "all" ? {} : { consent: consent === "yes" }),
       }),
   });
 
@@ -94,6 +101,23 @@ const UserManagement = () => {
             />
             {t("users.hide_simulated")}
           </label>
+
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("users.filter_consent")}>
+            <span className="self-center text-xs text-muted-foreground">
+              {t("users.filter_consent")}
+            </span>
+            {(["all", "yes", "no"] as const).map((option) => (
+              <Button
+                key={option}
+                size="sm"
+                variant={consent === option ? "default" : "outline"}
+                onClick={() => setConsent(option)}
+                data-testid={`consent-filter-${option}`}
+              >
+                {t(option === "all" ? "common.all" : option === "yes" ? "common.yes" : "common.no")}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {users.isLoading ? (
@@ -116,6 +140,7 @@ const UserManagement = () => {
                   <th className="px-4 py-3">{t("users.col_user")}</th>
                   <th className="px-4 py-3">{t("users.col_role")}</th>
                   <th className="px-4 py-3">{t("users.col_active")}</th>
+                  <th className="px-4 py-3">{t("users.col_consent")}</th>
                   <th className="px-4 py-3">{t("users.col_joined")}</th>
                 </tr>
               </thead>
@@ -198,6 +223,29 @@ const UserRow = ({
           aria-label={t(user.is_active ? "users.deactivate" : "users.activate")}
           data-testid="toggle-active"
         />
+      </td>
+      {/* Read-only: consent is the learner's to give (D42). */}
+      <td className="px-4 py-3" data-testid="user-consent">
+        {user.research_consent ? (
+          <Badge
+            variant="secondary"
+            className="gap-1 text-xs"
+            title={
+              user.research_consent_at
+                ? t("consent.since", {
+                    date: new Date(user.research_consent_at).toLocaleDateString(
+                      i18n.resolvedLanguage,
+                    ),
+                  })
+                : t("consent.given")
+            }
+          >
+            <ShieldCheck className="h-3 w-3" aria-hidden />
+            {t("common.yes")}
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">{t("common.no")}</span>
+        )}
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground">
         {new Date(user.date_joined).toLocaleDateString(i18n.resolvedLanguage)}

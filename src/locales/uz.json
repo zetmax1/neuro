@@ -262,6 +262,22 @@
     "answers_one": "{{count}} ta javob",
     "answers_other": "{{count}} ta javob"
   },
+  "consent": {
+    "title": "Tadqiqotda qatnashish",
+    "short": "Javoblarim magistrlik dissertatsiyasi tadqiqotida ishlatilishiga roziman",
+    "what": "Nima yig‘iladi: savollarga bergan javoblaringiz va ularning vaqti.",
+    "why": "Nima uchun: magistrlik dissertatsiyasi — adaptiv o‘qitish modelini baholash.",
+    "anonymous": "Ismingiz va email'ingiz chiqmaydi: eksportda faqat tasodifiy belgi bo‘ladi.",
+    "optional": "Majburiy emas: rozilik bermasangiz ham tizimdan to‘liq foydalanasiz.",
+    "revoke": "Istalgan vaqtda bekor qilishingiz mumkin. Bekor qilish keyingi eksportlardan chiqaradi; allaqachon olingan fayllar o‘zgarmaydi.",
+    "given": "Rozilik berilgan",
+    "not_given": "Rozilik berilmagan",
+    "since": "{{date}} dan",
+    "give": "Rozilik berish",
+    "withdraw": "Rozilikni bekor qilish",
+    "saved": "Rozilik saqlandi",
+    "withdrawn": "Rozilik bekor qilindi"
+  },
   "builder": {
     "title": "Kurs konstruktori",
     "subtitle": "Daraxt, prerekvizitlar va savollar",
@@ -349,7 +365,9 @@
     "you": "siz",
     "error_self": "O‘z rolingiz yoki faolligingizni o‘zgartira olmaysiz",
     "error_superuser": "Superfoydalanuvchi har doim administrator",
-    "error_staff": "Xodim kamida o‘qituvchi bo‘ladi"
+    "error_staff": "Xodim kamida o‘qituvchi bo‘ladi",
+    "col_consent": "Rozilik",
+    "filter_consent": "Tadqiqot roziligi"
   },
   "auth": {
     "login_title": "Kirish",

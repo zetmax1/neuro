@@ -57,6 +57,7 @@ export const useAuth = () => {
       password_confirm: string;
       first_name?: string;
       last_name?: string;
+      research_consent?: boolean;
     }) => authApi.register(userData),
     [],
   );

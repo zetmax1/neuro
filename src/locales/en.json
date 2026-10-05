@@ -262,6 +262,22 @@
     "answers_one": "{{count}} answer",
     "answers_other": "{{count}} answers"
   },
+  "consent": {
+    "title": "Taking part in the research",
+    "short": "I agree that my answers may be used in the master's thesis research",
+    "what": "What is collected: your answers to questions and when you gave them.",
+    "why": "Why: a master's thesis — evaluating an adaptive learning model.",
+    "anonymous": "Your name and email do not appear: an export carries only a random marker.",
+    "optional": "Not required: without consent you still use the whole platform.",
+    "revoke": "You can withdraw at any time. Withdrawing keeps you out of future exports; files already produced are not changed.",
+    "given": "Consent given",
+    "not_given": "No consent given",
+    "since": "since {{date}}",
+    "give": "Give consent",
+    "withdraw": "Withdraw consent",
+    "saved": "Consent saved",
+    "withdrawn": "Consent withdrawn"
+  },
   "builder": {
     "title": "Curriculum builder",
     "subtitle": "Structure, prerequisites and questions",
@@ -349,7 +365,9 @@
     "you": "you",
     "error_self": "You cannot change your own role or active flag",
     "error_superuser": "A superuser is always an administrator",
-    "error_staff": "A staff member is always at least an instructor"
+    "error_staff": "A staff member is always at least an instructor",
+    "col_consent": "Consent",
+    "filter_consent": "Research consent"
   },
   "auth": {
     "login_title": "Log in",
