@@ -48,6 +48,12 @@
     "login": "Log in",
     "menu": "Menu"
   },
+  "search": {
+    "label": "Search topics",
+    "placeholder": "Topic name…",
+    "empty": "No matching topic",
+    "hint": "Pick a result to select it on the learning path"
+  },
   "status": {
     "closed": "Closed",
     "open": "Open",
@@ -296,7 +302,14 @@
     "kappa_hint": "The prerequisite comes later in the tree order",
     "no_warnings": "No warnings",
     "questions_topic_only": "A question belongs to a topic node only",
-    "select_topic": "Select a topic"
+    "select_topic": "Select a topic",
+    "mode_create": "Create a new course",
+    "mode_edit": "Edit an existing course",
+    "select_course": "Choose a course",
+    "no_courses": "No courses yet",
+    "moved": "Order changed",
+    "children_count": "Child nodes: {{count}}",
+    "questions_count": "Questions: {{count}}"
   },
   "kb_error": {
     "cycle": "This would create a cycle (Y3): {{chain}}",
@@ -314,7 +327,9 @@
     "not_found": "Not found",
     "version_missing": "The knowledge-base version row is missing",
     "y4": "Only topics hold questions (Y4)",
-    "default": "The change could not be saved"
+    "default": "The change could not be saved",
+    "at_edge": "The node is already first or last among its siblings",
+    "direction": "Unknown direction"
   },
   "users": {
     "title": "Users",

@@ -39,6 +39,14 @@ export interface TopicResponse extends TopicPayload {
   test_question_count: number;
   /** Archived topics are hidden from lists unless ?include_archived=true (D11). */
   is_archived?: boolean;
+  /**
+   * What the structure editor needs before offering a kind change (D39): a
+   * section with children is not a leaf, and a topic holding questions cannot
+   * become a section (Y4). Absent from a PATCH response, which is why the
+   * editor reloads the list after saving.
+   */
+  question_count?: number;
+  child_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -104,6 +112,30 @@ export const updateTopic = async (id: number, topic: Partial<TopicPayload>): Pro
 export const deleteTopic = async (id: number): Promise<DeleteResult> => {
   const response = await apiClient.delete(`/api/curriculum/instructor/topics/${id}/`);
   return toDeleteResult(response.data);
+};
+
+/** One slot up or down among a node's siblings (D39). */
+export type ReorderDirection = 'up' | 'down';
+
+export interface ReorderResult {
+  id: number;
+  parent: number | null;
+  siblings: { id: number; name: string; position: number }[];
+}
+
+/**
+ * Moves a node one slot among its siblings. The backend renumbers the whole
+ * row in one knowledge-base change, so the answer is the new order; a node
+ * already first or last is a 400 with reason `at_edge`.
+ */
+export const reorderTopic = async (
+  id: number,
+  direction: ReorderDirection,
+): Promise<ReorderResult> => {
+  const response = await apiClient.post(`/api/curriculum/instructor/topics/${id}/reorder/`, {
+    direction,
+  });
+  return response.data;
 };
 
 /**

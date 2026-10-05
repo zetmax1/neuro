@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import type { Role } from "@/api/types";
 import LanguageSwitch from "@/components/layout/LanguageSwitch";
+import TopicSearch from "@/components/layout/TopicSearch";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { TUTOR_ENABLED } from "@/lib/features";
@@ -19,8 +20,9 @@ import { cn } from "@/lib/utils";
  * - admin: and users.
  *
  * "Courses" is gone — it duplicated the learning path's course list and the
- * dashboard's knowledge map (addendum 2.4). So is the search page, which
- * showed a hard-coded concept list (D23).
+ * dashboard's knowledge map (addendum 2.4). The search page is gone too,
+ * because it showed a hard-coded concept list (D23); the search itself is
+ * here as a panel over the real knowledge base (D40).
  */
 
 interface NavItem {
@@ -89,6 +91,7 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2">
+            {user && <TopicSearch className="hidden w-56 lg:block xl:w-72" />}
             <LanguageSwitch />
             {user ? (
               <>
@@ -128,6 +131,11 @@ const Header = () => {
 
         {mobileMenuOpen && (
           <nav className="space-y-1 border-t border-border py-4 md:hidden" aria-label={t("nav.menu")}>
+            {user && (
+              <div className="mb-3 px-4">
+                <TopicSearch />
+              </div>
+            )}
             {visible.map((link) => (
               <Link
                 key={link.path}

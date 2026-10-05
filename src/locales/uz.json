@@ -48,6 +48,12 @@
     "login": "Kirish",
     "menu": "Menyu"
   },
+  "search": {
+    "label": "Mavzu qidirish",
+    "placeholder": "Mavzu nomi…",
+    "empty": "Mos mavzu topilmadi",
+    "hint": "Natijani bosing — mavzu o‘quv yo‘lida tanlanadi"
+  },
   "status": {
     "closed": "Yopiq",
     "open": "Ochiq",
@@ -296,7 +302,14 @@
     "kappa_hint": "Prerekvizit daraxtdagi tartibda keyin keladi",
     "no_warnings": "Ogohlantirish yo‘q",
     "questions_topic_only": "Savol faqat mavzu turidagi tugunga biriktiriladi",
-    "select_topic": "Mavzuni tanlang"
+    "select_topic": "Mavzuni tanlang",
+    "mode_create": "Yangi kurs yaratish",
+    "mode_edit": "Mavjud kursni tahrirlash",
+    "select_course": "Kursni tanlang",
+    "no_courses": "Hali kurs yo‘q",
+    "moved": "Tartib o‘zgardi",
+    "children_count": "Ichidagi tugunlar: {{count}}",
+    "questions_count": "Savollar: {{count}}"
   },
   "kb_error": {
     "cycle": "Sikl hosil bo‘ladi (Y3): {{chain}}",
@@ -314,7 +327,9 @@
     "not_found": "Topilmadi",
     "version_missing": "Bilimlar bazasi versiyasi topilmadi",
     "y4": "Savollar faqat mavzularda bo‘ladi (Y4)",
-    "default": "O‘zgarishni saqlab bo‘lmadi"
+    "default": "O‘zgarishni saqlab bo‘lmadi",
+    "at_edge": "Bu tugun qo‘shnilari orasida allaqachon chetda",
+    "direction": "Yo‘nalish noto‘g‘ri"
   },
   "users": {
     "title": "Foydalanuvchilar",

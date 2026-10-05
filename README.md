@@ -28,9 +28,37 @@ npm run dev              # http://localhost:8080
 | `npm run lint` | ESLint over the whole project |
 | `npm test` | Vitest once |
 | `npm run test:watch` | Vitest in watch mode |
+| `npm run screenshots` | The interface screenshots of section 3.1 (see below) |
 
 Type checking is not a separate script; run `npx tsc -p tsconfig.app.json
 --noEmit`.
+
+## Screenshots for the thesis
+
+Section 3.1 of the thesis shows the interface, so every page needs a shot at a
+fixed width in Uzbek (addendum 2.11, D41). `scripts/screenshots.mjs` takes
+them with Playwright, which is not a dependency of the app:
+
+```sh
+npm i -D playwright && npx playwright install chromium
+# the backend on :8000 with a database seeded by `manage.py seed_thesis_demo`,
+# and `npm run dev` on :8080
+npm run screenshots -- --email you@example.org --password '…' \
+                      --out ~/Desktop/neuro_dj/docs/ui
+```
+
+Files land in `<out>/<lang>/<page>-<width>.png` next to a `manifest.json` that
+records the settings, the topic id, the commit and anything skipped — so a
+figure in the thesis can be traced to the run that produced it. Instructor and
+admin pages need an account with the role (D15); with a student account they
+are skipped, so the script is run twice. `npm run screenshots -- --list`
+prints the page names, and `--help` is in the script's header.
+
+The run is deliberately deterministic: a fixed viewport and device scale, the
+light colour scheme whatever the machine prefers, animations off, and a wait
+for the network and the app's own spinner before each shot. The graph pages
+use the `lev` layout, which is deterministic, so the same graph always looks
+the same — a figure in the thesis must be reproducible at the defence.
 
 ## Environment
 

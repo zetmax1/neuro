@@ -10,9 +10,9 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { getLeafEdges } from "@/api/instructor.api";
 import type { TopicStatus } from "@/api/types";
@@ -43,6 +43,9 @@ import { formatProbability } from "@/lib/format";
  * Clicking a topic opens a side panel with its status and P(L), the missing
  * prerequisites with their own P(L), and buttons to practise or to show the
  * path to it. "Path to this topic" highlights Need(g) and dims the rest.
+ *
+ * `?topic=<id>` selects a node on arrival, which is how the header's search
+ * hands one over (D40): a hit is read here, in the graph it belongs to.
  */
 
 const nodeTypes = { customTopic: CustomTopicNode, container: ContainerNode };
@@ -61,6 +64,25 @@ const LearningPath = () => {
   const [courseId, setCourseId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [goalId, setGoalId] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
+
+  // D40: a search hit arrives as ?topic=<id>. The parameter is consumed once —
+  // dropping it keeps the back button and a later click on another node from
+  // fighting over the selection.
+  const requested = params.get("topic");
+  useEffect(() => {
+    if (requested === null) return;
+    const id = Number(requested);
+    if (Number.isFinite(id)) setSelectedId(id);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("topic");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requested, setParams]);
 
   const graph = usePrerequisiteGraphData();
   // G_L is served by the same endpoint family; instructors and students alike

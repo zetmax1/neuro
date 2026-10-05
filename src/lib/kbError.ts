@@ -22,6 +22,8 @@ const REASONS = new Set([
   "cycle", "nested", "self", "duplicate", "weight", "archived", "kind",
   "parent_is_topic", "has_children", "has_questions", "move_into_subtree",
   "duplicate_slug", "not_found", "version_missing", "y4",
+  // D39, from the reordering endpoint.
+  "at_edge", "direction",
 ]);
 
 export function kbErrorBody(error: unknown): KbErrorBody | null {

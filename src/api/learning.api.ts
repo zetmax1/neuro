@@ -2,6 +2,7 @@ import apiClient from "./client";
 import type {
   AttemptSource,
   MissingPrerequisite,
+  NodeKind,
   Reason,
   Role,
   TopicStatus,
@@ -184,5 +185,33 @@ export const getMeSummary = async (): Promise<MeSummaryResponse> => {
 
 export const getModelConfig = async (): Promise<ModelConfigResponse> => {
   const response = await apiClient.get("/api/config/model/");
+  return response.data;
+};
+
+/**
+ * One hit of the topic search (D40). A section or a course has no status and
+ * no P(L) (D22), so both come back null.
+ */
+export interface TopicSearchHit {
+  topic_id: number;
+  name: string;
+  slug: string;
+  kind: NodeKind;
+  course_id: number;
+  course_name: string | null;
+  status: TopicStatus | null;
+  p_mastery: number | null;
+}
+
+export interface TopicSearchResponse {
+  q: string;
+  limit: number;
+  count: number;
+  results: TopicSearchHit[];
+}
+
+/** Active nodes whose name contains `q`, in programme order, at most `limit`. */
+export const searchTopics = async (q: string): Promise<TopicSearchResponse> => {
+  const response = await apiClient.get("/api/learning/search/", { params: { q } });
   return response.data;
 };

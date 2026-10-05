@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PrerequisiteEditor from "@/components/instructor/PrerequisiteEditor";
+import CourseStructureEditor from "@/components/instructor/CourseStructureEditor";
 import { useTranslation } from "react-i18next";
 
 const topicSchema = z.object({
@@ -68,6 +69,9 @@ const topicSchema = z.object({
 
 type TopicFormValues = z.infer<typeof topicSchema>;
 
+/** D39: "create a new course" (the wizard) or "edit an existing course". */
+type BuilderMode = "create" | "edit";
+
 export const CurriculumBuilder: React.FC = () => {
   const { user, isLoading: loadingAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -85,6 +89,10 @@ export const CurriculumBuilder: React.FC = () => {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   
   const { t } = useTranslation();
+  // D39: the constructor has two jobs with opposite shapes. Creating a course
+  // is a sequence, so it stays the wizard below. Correcting one is not, so it
+  // gets the tree and the node editor of CourseStructureEditor.
+  const [mode, setMode] = useState<BuilderMode>("create");
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Edit states & Modals
@@ -292,18 +300,35 @@ export const CurriculumBuilder: React.FC = () => {
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
         {/* Page Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-5 gap-4">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-5 gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Curriculum & Theme Quiz Builder</h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Design curriculum paths, manage models (CRUD), upload resources, and bulk-import theme quiz questions.
-            </p>
+            <h1 className="text-3xl font-extrabold text-slate-900">{t("builder.title")}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t("builder.subtitle")}</p>
           </div>
           <Button variant="outline" className="shrink-0" onClick={() => navigate('/learning-path')}>
             View Learning Path Tree
           </Button>
         </div>
 
+        {/* D39: which of the two jobs the instructor is doing. */}
+        <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label={t("builder.title")}>
+          {(["create", "edit"] as BuilderMode[]).map(option => (
+            <Button
+              key={option}
+              size="sm"
+              variant={mode === option ? "default" : "outline"}
+              onClick={() => setMode(option)}
+              data-testid={`builder-mode-${option}`}
+            >
+              {t(option === "create" ? "builder.mode_create" : "builder.mode_edit")}
+            </Button>
+          ))}
+        </div>
+
+        {mode === "edit" && <CourseStructureEditor />}
+
+        {mode === "create" && (
+        <>
         {/* Wizard Progress Stepper (4 Steps) */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-8 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -972,6 +997,9 @@ export const CurriculumBuilder: React.FC = () => {
             )}
 
           </div>
+        )}
+
+        </>
         )}
 
         {/* Excel/Word Shablon Import Modal */}
