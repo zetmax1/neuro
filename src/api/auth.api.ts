@@ -1,86 +1,85 @@
-import apiClient from './client';
+import apiClient, { ensureCsrfToken } from "./client";
+import type { Role } from "./types";
 
+export interface Profile {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  is_deleted: boolean;
+  is_simulated: boolean;
+  date_joined: string;
+  role: Role;
+}
+
+export interface LoginResponse {
+  access: string;
+}
+
+/**
+ * Auth calls (D16). The refresh token never appears here: it is set and read
+ * as an httpOnly cookie by the browser.
+ */
 export const authApi = {
-  /**
-   * Authenticates a user and retrieves access/refresh tokens.
-   * @param credentials - The user's login details (e.g., username/email and password).
-   * @returns The authentication response data including JWT tokens.
-   */
-  login: async (credentials: any) => {
-    try {
-      // Using the SimpleJWT endpoint mapped in Django backend
-      const response = await apiClient.post('/api/accounts/token/', credentials);
-      
-      // Save tokens upon successful authentication
-      if (response.data.access && response.data.refresh) {
-        localStorage.setItem('accessToken', response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
-      }
-      return response.data;
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
-      throw new Error(errorMessage);
-    }
-  },
-
-  /**
-   * Registers a new user account.
-   * @param userData - The required data to create a new user.
-   * @returns The registration response data.
-   */
-  register: async (userData: any) => {
-    try {
-      const response = await apiClient.post('/api/accounts/register/', userData);
-      return response.data;
-    } catch (error: any) {
-      // Extract clean error messages to return to the UI
-      const errorMessage = error.response?.data?.detail 
-        || JSON.stringify(error.response?.data) 
-        || error.message 
-        || 'Registration failed';
-      throw new Error(errorMessage);
-    }
-  },
-
-  /**
-   * Fetches the profile details of the authenticated user.
-   * @returns The user's profile data.
-   */
-  getProfile: async () => {
-    try {
-      const response = await apiClient.get('/api/accounts/profile/');
-      return response.data;
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch profile';
-      throw new Error(errorMessage);
-    }
-  },
-
-  /**
-   * Fetches all users for administrative user management.
-   */
-  getUsers: async (): Promise<any[]> => {
-    const response = await apiClient.get('/api/accounts/users/');
-    if (response.data && Array.isArray(response.data.results)) {
-      return response.data.results;
-    }
+  /** Logs in; the access token is returned, the refresh token is a cookie. */
+  login: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
+    await ensureCsrfToken();
+    const response = await apiClient.post<LoginResponse>("/api/accounts/token/", credentials);
     return response.data;
   },
 
-  /**
-   * Soft-deletes / deactivates a user.
-   */
-  deactivateUser: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/accounts/users/${id}/`);
+  register: async (userData: {
+    email: string;
+    password: string;
+    password_confirm: string;
+    first_name?: string;
+    last_name?: string;
+  }) => {
+    const response = await apiClient.post("/api/accounts/register/", userData);
+    return response.data;
   },
 
-  /**
-   * Logs out the user by clearing local session data and redirecting.
-   * Note: This is a local action since JWTs are stateless on the server unless blacklisted.
-   */
-  logout: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/auth';
+  /** A new access token from the cookie; used on start to restore a session. */
+  refresh: async (): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>("/api/accounts/token/refresh/", {});
+    return response.data;
+  },
+
+  getProfile: async (): Promise<Profile> => {
+    const response = await apiClient.get<Profile>("/api/accounts/profile/");
+    return response.data;
+  },
+
+  /** Blacklists the refresh token server-side and clears the cookie. */
+  logout: async (): Promise<void> => {
+    await apiClient.post("/api/accounts/token/logout/", {});
+  },
+};
+
+export interface AdminUser extends Profile {
+  deleted_at: string | null;
+}
+
+export const usersApi = {
+  list: async (params: { role?: Role; simulated?: boolean } = {}): Promise<AdminUser[]> => {
+    const response = await apiClient.get("/api/accounts/users/", {
+      params: {
+        ...(params.role ? { role: params.role } : {}),
+        ...(params.simulated === undefined ? {} : { simulated: String(params.simulated) }),
+      },
+    });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results ?? []);
+  },
+
+  update: async (id: number, changes: { role?: Role; is_active?: boolean }): Promise<AdminUser> => {
+    const response = await apiClient.patch(`/api/accounts/users/${id}/`, changes);
+    return response.data;
+  },
+
+  softDelete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/accounts/users/${id}/`);
   },
 };

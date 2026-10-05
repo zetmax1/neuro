@@ -45,6 +45,8 @@ import {
   Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import PrerequisiteEditor from "@/components/instructor/PrerequisiteEditor";
+import { useTranslation } from "react-i18next";
 
 const topicSchema = z.object({
   name: z.string().min(2, "Topic title must be at least 2 characters"),
@@ -82,6 +84,7 @@ export const CurriculumBuilder: React.FC = () => {
   const [loadingResources, setLoadingResources] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Edit states & Modals
@@ -111,7 +114,7 @@ export const CurriculumBuilder: React.FC = () => {
     try {
       const data = await getTopics();
       setTopics(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load topics");
     } finally {
       setLoadingTopics(false);
@@ -123,7 +126,7 @@ export const CurriculumBuilder: React.FC = () => {
     try {
       const data = await getResourcesByTopic(topicId);
       setResources(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load resources for this topic");
     } finally {
       setLoadingResources(false);
@@ -135,7 +138,7 @@ export const CurriculumBuilder: React.FC = () => {
     try {
       const qData = await getQuestionsByTopic(topicId);
       setQuestions(qData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load quiz questions");
     } finally {
       setLoadingQuestions(false);
@@ -196,7 +199,7 @@ export const CurriculumBuilder: React.FC = () => {
     );
   }
 
-  const isStaff = user?.is_staff || user?.is_superuser;
+  const isStaff = user?.is_staff || user?.role === "admin";
   if (!user || !isStaff) {
     return <Navigate to="/" replace />;
   }
@@ -229,7 +232,6 @@ export const CurriculumBuilder: React.FC = () => {
         description: values.description,
         parent: null,
         position: topics.length,
-        is_unlocked: true,
         pass_mark_percentage: values.pass_mark_percentage,
         test_question_count: values.test_question_count,
       };
@@ -242,7 +244,7 @@ export const CurriculumBuilder: React.FC = () => {
       setSelectedResourceTopicId(newTopic.id);
       setSelectedQuizTopicId(null); // a course holds no questions (Y4)
       setCurrentStep(2);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to create root topic"));
     }
   };
@@ -263,7 +265,6 @@ export const CurriculumBuilder: React.FC = () => {
         parent: values.parent || selectedRootTopicId,
         kind: values.kind,
         position: topics.length,
-        is_unlocked: true,
         pass_mark_percentage: values.pass_mark_percentage,
         test_question_count: values.test_question_count,
       };
@@ -272,7 +273,7 @@ export const CurriculumBuilder: React.FC = () => {
       toast.success("Child module added!");
       reset({ name: "", description: "", parent: selectedRootTopicId, pass_mark_percentage: 60, test_question_count: 10, kind: "topic" });
       await loadTopics();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to add module"));
     }
   };
@@ -406,6 +407,29 @@ export const CurriculumBuilder: React.FC = () => {
                     Step 4
                   </p>
                   <p className="text-xs font-bold text-slate-800 line-clamp-1">Create Theme Quiz</p>
+                </div>
+              </button>
+
+              {/* Step 5: Prerequisites — the centre of the thesis (addendum 2.6) */}
+              <button
+                onClick={() => selectedRootTopicId && setCurrentStep(5)}
+                disabled={!selectedRootTopicId}
+                className="flex items-center gap-2 group text-left disabled:opacity-50 shrink-0"
+                data-testid="step-prerequisites"
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all",
+                  currentStep === 5
+                    ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
+                    : "bg-slate-100 text-slate-500"
+                )}>
+                  5
+                </div>
+                <div>
+                  <p className={cn("text-[10px] font-bold uppercase tracking-wider", currentStep === 5 ? "text-indigo-600" : "text-slate-400")}>
+                    Step 5
+                  </p>
+                  <p className="text-xs font-bold text-slate-800 line-clamp-1">{t("builder.tab_prerequisites")}</p>
                 </div>
               </button>
 
@@ -751,6 +775,15 @@ export const CurriculumBuilder: React.FC = () => {
             )}
 
             {/* STEP 4: Create Theme Quiz Questions */}
+            {currentStep === 5 && (
+              <section className="space-y-3">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">{t("builder.prereq_title")}</h2>
+                </div>
+                <PrerequisiteEditor courseId={selectedRootTopicId} />
+              </section>
+            )}
+
             {currentStep === 4 && (
               <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-300">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">

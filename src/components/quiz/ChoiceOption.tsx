@@ -52,6 +52,8 @@ const ChoiceOption: React.FC<ChoiceOptionProps> = ({
       onClick={() => onSelect(choice.id)}
       disabled={isSubmitting || feedback !== null}
       className={containerClasses}
+      data-testid={`quiz-choice-${choiceLetter}`}
+      aria-pressed={isSelected}
     >
       <div className="flex items-center flex-1 pr-3">
         {/* Letter Badge */}

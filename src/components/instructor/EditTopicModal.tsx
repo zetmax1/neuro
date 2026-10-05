@@ -60,8 +60,8 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
         name: topic.name,
         description: topic.description || "",
         parent: topic.parent,
-        pass_mark_percentage: (topic as any).pass_mark_percentage || 60,
-        test_question_count: (topic as any).test_question_count || 10,
+        pass_mark_percentage: topic.pass_mark_percentage || 60,
+        test_question_count: topic.test_question_count || 10,
       });
     }
   }, [topic, reset]);
@@ -83,8 +83,8 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
       toast.success("Curriculum model updated successfully!");
       onSuccess();
       onClose();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to update curriculum topic");
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Failed to update curriculum topic"));
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +104,7 @@ export const EditTopicModal: React.FC<EditTopicModalProps> = ({
       }
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to delete topic"));
     } finally {
       setIsDeleting(false);

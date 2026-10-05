@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, X, FileText, Loader2, AlertTriangle, Link2, Clock } from 'lucide-react';
 import { createResource, TopicResource } from '@/api/instructor.api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from "@/lib/apiError";
 
 interface DropzoneUploaderProps {
   topicId: number;
@@ -44,10 +45,10 @@ export const DropzoneUploader: React.FC<DropzoneUploaderProps> = ({
     }
   }, []);
 
-  const onDropRejected = useCallback((fileRejections: any[]) => {
+  const onDropRejected = useCallback((fileRejections: unknown[]) => {
     setFile(null);
     if (fileRejections.length > 0) {
-      const error = fileRejections[0].errors[0];
+      const error = (fileRejections[0] as { errors: { code?: string; message?: string }[] }).errors[0];
       if (error.code === 'file-too-large') {
         setErrorMsg('File exceeds the 50MB limit');
       } else if (error.code === 'too-many-files') {
@@ -99,8 +100,8 @@ export const DropzoneUploader: React.FC<DropzoneUploaderProps> = ({
       setFile(null);
       setDurationMinutes(10);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to upload resource');
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, 'Failed to upload resource'));
     } finally {
       setUploading(false);
       setProgress(0);
@@ -147,8 +148,8 @@ export const DropzoneUploader: React.FC<DropzoneUploaderProps> = ({
       setLinkUrl('');
       setDurationMinutes(10);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to save link resource');
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, 'Failed to save link resource'));
     } finally {
       setUploading(false);
       setProgress(0);

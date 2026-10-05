@@ -1,410 +1,535 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Header from '@/components/layout/Header';
-import QuestionDisplay from '@/components/quiz/QuestionDisplay';
-import ChoiceOption from '@/components/quiz/ChoiceOption';
-import { Button } from '@/components/ui/button';
-import { 
-  getTestSession, 
-  submitTestSession, 
-  TestSessionResponse, 
-  SubmitTestSessionResponse, 
-  Question 
-} from '@/api/assessment.api';
-import { 
-  Loader2, 
-  ArrowLeft, 
-  Trophy, 
-  BookOpen, 
-  Sparkles, 
-  CheckCircle2, 
-  XCircle, 
-  ChevronLeft, 
-  ChevronRight, 
-  Send,
-  HelpCircle,
-  AlertCircle
-} from 'lucide-react';
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, ArrowRight, CheckCircle2, Lock, XCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
-const QuizSession: React.FC = () => {
+import {
+  getTestSession,
+  submitTestSession,
+  type Question,
+  type SubmitTestSessionResponse,
+} from "@/api/assessment.api";
+import MissingPrerequisites from "@/components/common/MissingPrerequisites";
+import StatusBadge from "@/components/common/StatusBadge";
+import ChoiceOption from "@/components/quiz/ChoiceOption";
+import Header from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAdaptiveQuiz } from "@/hooks/useAdaptiveQuiz";
+import { useInvalidateLearnerState, useModelConfig } from "@/hooks/useLearningData";
+import { formatGrade, formatProbability, formatProbabilityChange } from "@/lib/format";
+import { closedTopicMissing } from "@/lib/kbError";
+
+/**
+ * The quiz, in the two modes stage 7 separates (addendum 2.9).
+ *
+ * `?mode=practice` is adaptive practice: one question at a time, the verdict
+ * and the instructor's explanation shown immediately, a toast when the status
+ * changes, and no difficulty badge — the item was chosen by |b_q - θ_s|, so a
+ * bucket label would misdescribe it.
+ *
+ * `?mode=test` keeps the existing exam design. Its result screen reports the
+ * grade and the pass mark, and separately what the model did: P(L) before →
+ * after and any topics the answers opened.
+ *
+ * Keyboard: A–D select, Enter confirms.
+ */
+
+const LETTERS = ["A", "B", "C", "D", "E", "F"];
+
+const QuizSession = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const mode = params.get("mode") === "test" ? "test" : "practice";
 
-  const [sessionData, setSessionData] = useState<TestSessionResponse | null>(null);
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
-  const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
-  
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resultScorecard, setResultScorecard] = useState<SubmitTestSessionResponse | null>(null);
+  return mode === "test" ? <TestMode topicId={id} /> : <PracticeMode topicId={id} />;
+};
 
-  // Fetch Test Session Paper
+// ---------------------------------------------------------------------------
+// Adaptive practice
+// ---------------------------------------------------------------------------
+
+const PracticeMode = ({ topicId }: { topicId: string | undefined }) => {
+  const { t } = useTranslation();
+  const quiz = useAdaptiveQuiz(topicId);
+  const [announced, setAnnounced] = useState<string | null>(null);
+
+  // A status change is the thing a learner most needs to notice.
   useEffect(() => {
-    if (!id) return;
-    setIsLoading(true);
-    setError(null);
-    getTestSession(id)
-      .then((data) => {
-        setSessionData(data);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load test session:', err);
-        setError(err?.response?.data?.detail || 'Failed to load assessment test session.');
-        setIsLoading(false);
-      });
-  }, [id]);
-
-  const questions: Question[] = sessionData?.questions || [];
-  const currentQuestion: Question | undefined = questions[activeQuestionIndex];
-  const totalQuestions = questions.length;
-
-  const answeredCount = Object.keys(userAnswers).length;
-
-  const handleSelectChoice = (choiceId: number) => {
-    if (!currentQuestion || resultScorecard) return;
-    setUserAnswers((prev) => ({
-      ...prev,
-      [currentQuestion.id]: choiceId,
-    }));
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!sessionData || !id || isSubmitting) return;
-
-    setIsSubmitting(true);
-    const answersPayload = questions.map((q) => ({
-      question_id: q.id,
-      choice_id: userAnswers[q.id] || null,
-    }));
-
-    try {
-      const res = await submitTestSession({
-        topic_id: Number(id),
-        answers: answersPayload,
-      });
-      setResultScorecard(res);
-    } catch (err: any) {
-      console.error('Error submitting test session:', err);
-      alert('Error submitting test session. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (!quiz.status || quiz.verdict === null) return;
+    const key = `${quiz.attempts}:${quiz.status}`;
+    if (announced === key) return;
+    setAnnounced(key);
+    if (quiz.openedTopics.length > 0) {
+      toast.success(t("quiz.topics_opened"));
     }
-  };
+  }, [quiz.status, quiz.verdict, quiz.attempts, quiz.openedTopics, announced, t]);
 
-  // Hotkey keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isSubmitting || resultScorecard || !currentQuestion) return;
+    if (quiz.isReviewRepeat) toast.info(t("quiz.review_repeat"));
+  }, [quiz.isReviewRepeat, t]);
 
-      const key = e.key.toLowerCase();
-
-      // Choice selection (1-4 or A-D)
-      if (['1', 'a'].includes(key) && currentQuestion.choices[0]) {
-        handleSelectChoice(currentQuestion.choices[0].id);
-      } else if (['2', 'b'].includes(key) && currentQuestion.choices[1]) {
-        handleSelectChoice(currentQuestion.choices[1].id);
-      } else if (['3', 'c'].includes(key) && currentQuestion.choices[2]) {
-        handleSelectChoice(currentQuestion.choices[2].id);
-      } else if (['4', 'd'].includes(key) && currentQuestion.choices[3]) {
-        handleSelectChoice(currentQuestion.choices[3].id);
-      } else if (e.key === 'ArrowLeft' && activeQuestionIndex > 0) {
-        setActiveQuestionIndex((prev) => prev - 1);
-      } else if (e.key === 'ArrowRight' && activeQuestionIndex < totalQuestions - 1) {
-        setActiveQuestionIndex((prev) => prev + 1);
+  const onKey = useCallback(
+    (event: KeyboardEvent) => {
+      if (!quiz.question) return;
+      const letter = event.key.toUpperCase();
+      const index = LETTERS.indexOf(letter);
+      if (index >= 0 && index < quiz.question.choices.length) {
+        event.preventDefault();
+        quiz.select(quiz.question.choices[index].id);
+        return;
       }
-    };
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (quiz.verdict === null) void quiz.submit();
+        else quiz.advance();
+      }
+    },
+    [quiz],
+  );
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestion, isSubmitting, resultScorecard, activeQuestionIndex, totalQuestions]);
+  useEffect(() => {
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onKey]);
 
-  const getDifficultyBadge = (diff: number) => {
-    if (diff === 1) return { label: 'Easy', style: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-    if (diff === 2) return { label: 'Med', style: 'bg-amber-100 text-amber-800 border-amber-300' };
-    return { label: 'Hard', style: 'bg-rose-100 text-rose-800 border-rose-300' };
-  };
+  if (quiz.closedMissing) {
+    return <ClosedTopic missing={quiz.closedMissing} />;
+  }
+
+  if (quiz.isLoading) {
+    return (
+      <Shell>
+        <Skeleton className="h-64 w-full" />
+      </Shell>
+    );
+  }
+
+  if (quiz.error) {
+    return (
+      <Shell>
+        <Notice icon={<AlertCircle className="h-5 w-5 text-destructive" />} text={t("common.error")}>
+          <Button variant="outline" size="sm" onClick={() => void quiz.reload()}>
+            {t("common.retry")}
+          </Button>
+        </Notice>
+      </Shell>
+    );
+  }
+
+  if (quiz.hasNoQuestions || (quiz.isComplete && quiz.attempts === 0)) {
+    return (
+      <Shell>
+        <Notice text={t(quiz.hasNoQuestions ? "quiz.no_questions" : "quiz.no_more")}>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/assessment">{t("quiz.back_to_assessments")}</Link>
+          </Button>
+        </Notice>
+      </Shell>
+    );
+  }
+
+  if (quiz.isComplete || !quiz.question) {
+    return (
+      <Shell>
+        <Card data-testid="practice-complete">
+          <CardHeader>
+            <CardTitle>{t("quiz.no_more")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {quiz.status && (
+              <div className="flex items-center gap-2 text-sm">
+                <StatusBadge status={quiz.status} />
+                <span className="tabular-nums text-muted-foreground">
+                  {t("metric.p_mastery")} {formatProbability(quiz.pMastery)}
+                </span>
+              </div>
+            )}
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/assessment">{t("quiz.back_to_assessments")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  const question = quiz.question;
 
   return (
-    <div className="min-h-screen bg-slate-50/80 font-sans flex flex-col">
-      <Header />
-
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
-        {/* Top Header Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <button
-            onClick={() => navigate('/assessment')}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-650 transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Assessment Directory
-          </button>
-
-          {sessionData && (
-            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-900 px-4 py-2 rounded-xl text-xs font-bold shadow-xs">
-              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-              <span>{sessionData.topic_name} — Pass Mark: {sessionData.pass_mark_percentage}%</span>
+    <Shell>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold" data-testid="practice-title">
+            {t("quiz.practice_title", { topic: question.topic_name })}
+          </h1>
+          {quiz.status && (
+            <div className="flex items-center gap-2 text-sm">
+              <StatusBadge status={quiz.status} />
+              <span className="tabular-nums text-muted-foreground">
+                {t("metric.p_mastery")} {formatProbability(quiz.pMastery)}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-28 bg-white rounded-3xl border border-slate-200 shadow-sm">
-            <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-            <p className="text-slate-600 font-semibold text-base">Preparing stratified test paper...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-white rounded-3xl shadow-sm border border-rose-200 p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-            <h2 className="text-xl font-bold text-rose-700 mb-2">Failed to Load Test</h2>
-            <p className="text-slate-600 mb-6 text-sm">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">Try Again</Button>
-          </div>
-        ) : totalQuestions === 0 ? (
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-12 text-center">
-            <BookOpen className="w-14 h-14 text-indigo-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">No Test Questions Available</h1>
-            <p className="text-slate-500 text-sm max-w-md mx-auto mb-6">
-              There are currently no active assessment questions added for this topic or its child modules.
-            </p>
-            <Button onClick={() => navigate('/assessment')}>Return to Assessments</Button>
-          </div>
-        ) : resultScorecard ? (
-          /* ============================================================ */
-          /* FINAL SCORECARD / EVALUATION RESULT VIEW                    */
-          /* ============================================================ */
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 sm:p-12 animate-in fade-in zoom-in duration-500">
-            <div className="text-center mb-8">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                resultScorecard.is_passed ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
-              }`}>
-                {resultScorecard.is_passed ? <Trophy className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
-              </div>
-
-              <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-xl border ${
-                resultScorecard.is_passed ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
-              }`}>
-                {resultScorecard.is_passed ? 'Passed Topic' : 'Needs Retake'}
-              </span>
-
-              <h1 className="text-3xl font-extrabold text-slate-900 mt-2 mb-1">
-                {resultScorecard.is_passed ? 'Congratulations!' : 'Keep Practicing!'}
-              </h1>
-              <p className="text-slate-500 text-sm">
-                Topic: <strong className="text-slate-800">{resultScorecard.topic_name}</strong> (Required Grade: {resultScorecard.pass_mark_percentage}%)
-              </p>
+        <Card>
+          <CardHeader>
+            {/* No difficulty badge: the item was chosen by |b_q - θ_s|. */}
+            <CardTitle className="text-lg leading-snug">{question.text}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {question.image && (
+              <img src={question.image} alt="" className="max-h-64 rounded-md object-contain" />
+            )}
+            <div className="space-y-2">
+              {question.choices.map((choice, index) => (
+                <ChoiceOption
+                  key={choice.id}
+                  choice={choice}
+                  index={index}
+                  isSelected={quiz.selectedChoiceId === choice.id}
+                  isSubmitting={quiz.isSubmitting}
+                  feedback={quiz.verdict}
+                  onSelect={quiz.select}
+                />
+              ))}
             </div>
 
-            {/* Score Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Final Weighted Score</span>
-                <span className="text-3xl font-black text-indigo-600">{resultScorecard.grade_percentage}%</span>
+            {quiz.verdict === null ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">{t("quiz.keyboard_hint")}</p>
+                <Button
+                  onClick={() => void quiz.submit()}
+                  disabled={quiz.selectedChoiceId === null || quiz.isSubmitting}
+                  data-testid="quiz-check"
+                >
+                  {t("quiz.check")}
+                </Button>
               </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Earned Points</span>
-                <span className="text-3xl font-black text-slate-800">{resultScorecard.earned_points} / {resultScorecard.total_points}</span>
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Questions Evaluated</span>
-                <span className="text-3xl font-black text-slate-800">{resultScorecard.total_questions}</span>
-              </div>
-            </div>
+            ) : (
+              <Verdict quiz={quiz} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </Shell>
+  );
+};
 
-            {/* Difficulty Weighted Breakdown */}
-            <div className="bg-slate-900 text-white p-6 rounded-2xl mb-8 shadow-inner">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-indigo-400" />
-                Difficulty Tier Performance Breakdown (Harder = Higher Points)
-              </h3>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-                  <span className="text-xs text-emerald-400 font-bold block mb-0.5">Easy Tier (1 pt ea)</span>
-                  <span className="text-lg font-extrabold">{resultScorecard.breakdown.easy.correct} / {resultScorecard.breakdown.easy.total}</span>
-                </div>
-                <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-                  <span className="text-xs text-amber-400 font-bold block mb-0.5">Medium Tier (2 pt ea)</span>
-                  <span className="text-lg font-extrabold">{resultScorecard.breakdown.medium.correct} / {resultScorecard.breakdown.medium.total}</span>
-                </div>
-                <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-                  <span className="text-xs text-rose-400 font-bold block mb-0.5">Hard Tier (3 pt ea)</span>
-                  <span className="text-lg font-extrabold">{resultScorecard.breakdown.hard.correct} / {resultScorecard.breakdown.hard.total}</span>
-                </div>
-              </div>
-            </div>
+const Verdict = ({ quiz }: { quiz: ReturnType<typeof useAdaptiveQuiz> }) => {
+  const { t } = useTranslation();
+  const correct = quiz.verdict === "correct";
 
-            {/* Answer Explanations Review */}
-            <div className="mb-8">
-              <h3 className="text-lg font-extrabold text-slate-900 mb-4">Detailed Question Review</h3>
-              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                {resultScorecard.answers_summary.map((ans, idx) => (
-                  <div key={ans.question_id} className={`p-4 rounded-2xl border ${
-                    ans.is_correct ? 'bg-emerald-50/60 border-emerald-200' : 'bg-rose-50/60 border-rose-200'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        {ans.is_correct ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-rose-600" />
-                        )}
-                        Question #{idx + 1} ({ans.difficulty_display} • Weight: {ans.weight} pt)
-                      </span>
-                      <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${
-                        ans.is_correct ? 'bg-emerald-200 text-emerald-900' : 'bg-rose-200 text-rose-900'
-                      }`}>
-                        {ans.is_correct ? `+${ans.points_earned} pts` : '0 pts'}
-                      </span>
-                    </div>
-                    {ans.explanation && (
-                      <p className="text-xs text-slate-600 italic bg-white/80 p-2.5 rounded-xl border border-slate-200 mt-2">
-                        💡 <strong>Explanation:</strong> {ans.explanation}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 border-t border-slate-100">
-              <Button onClick={() => window.location.reload()} variant="outline" className="w-full sm:w-auto px-8 rounded-xl font-bold">
-                Retake Assessment
-              </Button>
-              <Button onClick={() => navigate('/assessment')} className="w-full sm:w-auto px-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700">
-                Return to Assessments Directory
-              </Button>
-            </div>
-          </div>
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/40 p-4" data-testid="quiz-verdict">
+      <p className="flex items-center gap-2 font-medium">
+        {correct ? (
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />
         ) : (
-          /* ============================================================ */
-          /* ACTIVE TEST SESSION PAPER VIEW                               */
-          /* ============================================================ */
-          <div className="space-y-6">
-            
-            {/* QUESTION NAVIGATOR PALETTE BAR */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <HelpCircle className="w-4 h-4 text-indigo-500" />
-                  Question Navigation Palette
-                </span>
-                <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
-                  {answeredCount} of {totalQuestions} Answered
-                </span>
-              </div>
+          <XCircle className="h-5 w-5 text-rose-600" aria-hidden />
+        )}
+        {t(correct ? "quiz.correct" : "quiz.incorrect")}
+      </p>
 
-              {/* Grid Pills of Questions with Difficulty Badges */}
-              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                {questions.map((q, idx) => {
-                  const isCurrent = idx === activeQuestionIndex;
-                  const isAnswered = userAnswers[q.id] !== undefined;
-                  const diffBadge = getDifficultyBadge(q.difficulty);
+      {quiz.explanation && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t("quiz.explanation")}
+          </p>
+          <p className="text-sm">{quiz.explanation}</p>
+        </div>
+      )}
 
-                  let pillClasses = "relative flex flex-col items-center justify-center p-2 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer ";
+      {!quiz.isReviewRepeat && quiz.pBefore !== null && (
+        <p className="text-sm tabular-nums text-muted-foreground">
+          {t("quiz.p_change")}: {formatProbabilityChange(quiz.pBefore, quiz.pMastery)}
+        </p>
+      )}
+      {quiz.isReviewRepeat && (
+        <p className="text-sm text-muted-foreground">{t("quiz.review_repeat")}</p>
+      )}
 
-                  if (isCurrent) {
-                    pillClasses += "bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-500/30 scale-[1.03]";
-                  } else if (isAnswered) {
-                    pillClasses += "bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100";
-                  } else {
-                    pillClasses += "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100";
+      <div className="flex gap-2">
+        <Button onClick={quiz.advance} data-testid="quiz-next">
+          {t("quiz.next_question")}
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/assessment">{t("quiz.finish_practice")}</Link>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Test
+// ---------------------------------------------------------------------------
+
+const TestMode = ({ topicId }: { topicId: string | undefined }) => {
+  const { t } = useTranslation();
+  const invalidate = useInvalidateLearnerState();
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [index, setIndex] = useState(0);
+  const [result, setResult] = useState<SubmitTestSessionResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [closed, setClosed] = useState<ReturnType<typeof closedTopicMissing> | null>(null);
+
+  const session = useQuery({
+    queryKey: ["assessments", "test-session", topicId],
+    queryFn: () => getTestSession(topicId as string),
+    enabled: Boolean(topicId),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (session.error) {
+      const missing = closedTopicMissing(session.error);
+      if (missing.length > 0) setClosed(missing);
+    }
+  }, [session.error]);
+
+  const questions: Question[] = session.data?.questions ?? [];
+  const current = questions[index];
+  const unanswered = questions.length - Object.keys(answers).length;
+
+  const submit = async () => {
+    if (!topicId) return;
+    setSubmitting(true);
+    try {
+      const payload = {
+        topic_id: Number(topicId),
+        answers: questions.map((question) => ({
+          question_id: question.id,
+          choice_id: answers[question.id] ?? null,
+        })),
+      };
+      setResult(await submitTestSession(payload));
+      invalidate();
+    } catch (error) {
+      const missing = closedTopicMissing(error);
+      if (missing.length > 0) setClosed(missing);
+      else toast.error(t("common.error"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (closed) return <ClosedTopic missing={closed} />;
+  if (session.isLoading) {
+    return (
+      <Shell>
+        <Skeleton className="h-64 w-full" />
+      </Shell>
+    );
+  }
+  if (session.isError) {
+    return (
+      <Shell>
+        <Notice icon={<AlertCircle className="h-5 w-5 text-destructive" />} text={t("common.error")}>
+          <Button variant="outline" size="sm" onClick={() => void session.refetch()}>
+            {t("common.retry")}
+          </Button>
+        </Notice>
+      </Shell>
+    );
+  }
+  if (result) return <TestResult result={result} />;
+  if (!current) {
+    return (
+      <Shell>
+        <Notice text={t("quiz.no_questions")}>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/assessment">{t("quiz.back_to_assessments")}</Link>
+          </Button>
+        </Notice>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">
+            {t("quiz.test_title", { topic: session.data?.topic_name ?? "" })}
+          </h1>
+          <div className="flex items-center gap-3">
+            <Progress value={((index + 1) / questions.length) * 100} className="h-1.5" />
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {t("quiz.of_n", { n: index + 1, total: questions.length })}
+            </span>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg leading-snug">{current.text}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              {current.choices.map((choice, position) => (
+                <ChoiceOption
+                  key={choice.id}
+                  choice={choice}
+                  index={position}
+                  isSelected={answers[current.id] === choice.id}
+                  isSubmitting={submitting}
+                  feedback={null}
+                  onSelect={(choiceId) =>
+                    setAnswers((previous) => ({ ...previous, [current.id]: choiceId }))
                   }
-
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => setActiveQuestionIndex(idx)}
-                      className={pillClasses}
-                      title={`Jump to Q${idx + 1} (${diffBadge.label})`}
-                    >
-                      <span className="text-sm leading-none font-black">{idx + 1}</span>
-                      <span className={`text-[9px] uppercase tracking-tighter mt-1 font-bold px-1 rounded ${
-                        isCurrent ? 'bg-white/20 text-white' : diffBadge.style
-                      }`}>
-                        {diffBadge.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                />
+              ))}
             </div>
 
-            {/* ACTIVE QUESTION CARD */}
-            {currentQuestion && (
-              <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm relative">
-                
-                {/* Question Text & Media */}
-                <QuestionDisplay question={currentQuestion} questionNumber={activeQuestionIndex + 1} />
-
-                {/* Multiple Choice Options */}
-                <div className="space-y-3.5 mb-8">
-                  {currentQuestion.choices.map((choice, idx) => (
-                    <ChoiceOption
-                      key={choice.id}
-                      choice={choice}
-                      index={idx}
-                      isSelected={userAnswers[currentQuestion.id] === choice.id}
-                      isSubmitting={false}
-                      feedback={null}
-                      onSelect={handleSelectChoice}
-                    />
-                  ))}
-                </div>
-
-                {/* Bottom Pagination & Submit Bar */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 border-t border-slate-100">
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={activeQuestionIndex === 0}
-                      className="rounded-xl gap-1.5"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Prev
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setActiveQuestionIndex((prev) => Math.min(totalQuestions - 1, prev + 1))}
-                      disabled={activeQuestionIndex === totalQuestions - 1}
-                      className="rounded-xl gap-1.5"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <Button
-                    type="button"
-                    onClick={handleFinalSubmit}
-                    disabled={isSubmitting || answeredCount === 0}
-                    size="lg"
-                    className="w-full sm:w-auto px-8 h-12 text-sm font-bold shadow-md shadow-indigo-100 rounded-xl bg-indigo-600 hover:bg-indigo-700 gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Calculating Grade...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Submit Final Test ({answeredCount}/{totalQuestions})
-                      </>
-                    )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIndex((value) => Math.max(0, value - 1))}
+                disabled={index === 0}
+              >
+                {t("common.back")}
+              </Button>
+              {index < questions.length - 1 ? (
+                <Button size="sm" onClick={() => setIndex((value) => value + 1)}>
+                  {t("common.next")}
+                </Button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  {unanswered > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("quiz.unanswered", { count: unanswered })}
+                    </span>
+                  )}
+                  <Button size="sm" onClick={() => void submit()} disabled={submitting} data-testid="submit-test">
+                    {t("quiz.submit_test")}
                   </Button>
                 </div>
-              </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Shell>
+  );
+};
+
+const TestResult = ({ result }: { result: SubmitTestSessionResponse }) => {
+  const { t } = useTranslation();
+  const config = useModelConfig();
+
+  return (
+    <Shell>
+      <div className="space-y-4" data-testid="test-result">
+        <h1 className="text-xl font-semibold">{t("quiz.result_title")}</h1>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t("quiz.grade")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-3xl font-bold tabular-nums">{formatGrade(result.grade_percentage)}</p>
+            <p className="text-muted-foreground">
+              {t("quiz.points", { earned: result.earned_points, total: result.total_points })} ·{" "}
+              {t("quiz.pass_mark")} {formatGrade(result.pass_mark_percentage)}
+            </p>
+            <p className={result.is_passed ? "font-medium text-emerald-700" : "font-medium text-amber-700"}>
+              {t(result.is_passed ? "quiz.passed" : "quiz.failed")}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* D7: the grade above is an exam score; the model state is separate. */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t("quiz.model_after")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <StatusBadge status={result.status} />
+              <span className="tabular-nums text-muted-foreground">
+                {t("metric.p_mastery")} {formatProbability(result.p_mastery)}
+              </span>
+              {config.data && (
+                <span className="text-xs text-muted-foreground">
+                  (τ = {formatProbability(config.data.tau)})
+                </span>
+              )}
+            </div>
+            <p className="tabular-nums text-muted-foreground">
+              {t("metric.accuracy")} {formatProbability(result.accuracy)}
+            </p>
+            {result.opened_topics.length > 0 && (
+              <p className="text-emerald-700">
+                {t("quiz.opened_topics")}: {result.opened_topics.length}
+              </p>
             )}
-          </div>
-        )}
-      </main>
-    </div>
+          </CardContent>
+        </Card>
+
+        <Button variant="outline" asChild>
+          <Link to="/assessment">{t("quiz.back_to_assessments")}</Link>
+        </Button>
+      </div>
+    </Shell>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Shared
+// ---------------------------------------------------------------------------
+
+const Shell = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-background">
+    <Header />
+    <main className="container mx-auto max-w-3xl px-4 py-8">{children}</main>
+  </div>
+);
+
+const Notice = ({
+  icon,
+  text,
+  children,
+}: {
+  icon?: React.ReactNode;
+  text: string;
+  children?: React.ReactNode;
+}) => (
+  <Card>
+    <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+      {icon}
+      <p className="text-sm text-muted-foreground">{text}</p>
+      {children}
+    </CardContent>
+  </Card>
+);
+
+const ClosedTopic = ({ missing }: { missing: { topic_id: number; name: string; p_mastery: number }[] }) => {
+  const { t } = useTranslation();
+  return (
+    <Shell>
+      <Card data-testid="closed-topic">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Lock className="h-4 w-4" aria-hidden />
+            {t("quiz.closed_title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <MissingPrerequisites missing={missing} />
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/learning-path">{t("learning.title")}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </Shell>
   );
 };
 

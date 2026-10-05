@@ -1,4 +1,5 @@
 import apiClient from './client';
+import type { AttemptSource, LearnerState, MissingPrerequisite, TopicStatus } from './types';
 
 export interface Choice {
   id: number;
@@ -18,36 +19,36 @@ export interface Question {
   choices: Choice[];
 }
 
-/** Ledger source of an answer. `review_repeat` answers do not change P(L) (D25). */
-export type AttemptSource =
-  | 'adaptive'
-  | 'test_session'
-  | 'review_repeat'
-  | 'seed'
-  | 'simulated'
-  | 'legacy';
+export type { AttemptSource };
 
+/** The learner's state after one answer, plus what the answer opened. */
 export interface SubmissionResponse {
   is_correct: boolean;
   explanation: string;
-  mastery_level: number;
-  mastery_display: string;
-  mastery_percentage: number;
-  streak: number;
+  p_mastery: number;
+  status: TopicStatus;
+  mastered: boolean;
+  accuracy: number;
+  attempts: number;
+  /** Topics whose prerequisites this answer completed (Algorithm 2.3). */
+  opened_topics: number[];
   next_question: Question | null;
   source: AttemptSource;
   attempt_no: number;
 }
 
-export interface AssessmentTest {
+/** The 403 body of a closed topic (TY1–TY4). */
+export interface ClosedTopicError {
+  missing: MissingPrerequisite[];
+}
+
+export interface AssessmentTest extends LearnerState {
   id: number;
   name: string;
   slug: string;
   description: string;
   parent_name: string | null;
   question_count: number;
-  is_unlocked: boolean;
-  mastery_percentage: number;
   difficulty_level: 'Easy' | 'Medium' | 'Hard' | 'Adaptive';
   estimated_minutes: number;
 }
@@ -119,7 +120,15 @@ export interface SubmitTestSessionResponse {
     weight: number;
     points_earned: number;
     explanation: string;
+    /** `review_repeat` was logged but changed nothing; null means unanswered. */
+    source: AttemptSource | null;
   }[];
+  /** The learner's state after the paper went through the model (stage 5). */
+  p_mastery: number;
+  accuracy: number;
+  status: TopicStatus;
+  mastered: boolean;
+  opened_topics: number[];
 }
 
 /**

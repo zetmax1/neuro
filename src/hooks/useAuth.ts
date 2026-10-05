@@ -1,58 +1,53 @@
-import { useEffect, useCallback } from "react";
-import { useAuthStore, User } from "@/store/authStore";
+import { useCallback, useEffect } from "react";
+
 import { authApi } from "@/api/auth.api";
+import { useAuthStore, type User } from "@/store/authStore";
 
+/**
+ * The session lifecycle (D16).
+ *
+ * On start there is no token in memory — a reload loses it by design — so the
+ * app asks the backend to refresh from the httpOnly cookie. A learner who
+ * still has a valid cookie is signed in silently; anyone else lands on the
+ * login page. Nothing is read from localStorage.
+ */
 export const useAuth = () => {
-  const {
-    user,
-    isAuthenticated,
-    isLoading,
-    setCredentials,
-    setUser,
-    setLoading,
-    logout: storeLogout,
-  } = useAuthStore();
+  const { user, isAuthenticated, isLoading, setSession, setUser, setLoading, clearSession } =
+    useAuthStore();
 
-  // On mount: if we have a token, try to fetch the user profile
   useEffect(() => {
-    const hydrate = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+    let cancelled = false;
 
+    const restore = async () => {
       try {
+        const { access } = await authApi.refresh();
         const profile = await authApi.getProfile();
-        setUser(profile as User);
+        if (!cancelled) setSession(access, profile as User);
       } catch {
-        // Token is invalid / expired and refresh also failed → clear
-        storeLogout();
+        if (!cancelled) clearSession();
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    hydrate();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    void restore();
+    return () => {
+      cancelled = true;
+    };
+    // Runs once: the store is the source of truth from then on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      // Call backend JWT endpoint
-      const data = await authApi.login({ email, password });
-
-      // Fetch user profile so we have full user data
-      let profile: User | null = null;
-      try {
-        profile = (await authApi.getProfile()) as User;
-      } catch {
-        // If profile fetch fails, proceed with partial data
-      }
-
-      setCredentials(data.access, profile);
-      return data;
+      const { access } = await authApi.login({ email, password });
+      // The token must be in the store before the profile call carries it.
+      setSession(access, null);
+      const profile = await authApi.getProfile();
+      setUser(profile as User);
+      return profile;
     },
-    [setCredentials],
+    [setSession, setUser],
   );
 
   const signup = useCallback(
@@ -62,16 +57,18 @@ export const useAuth = () => {
       password_confirm: string;
       first_name?: string;
       last_name?: string;
-    }) => {
-      const data = await authApi.register(userData);
-      return data;
-    },
+    }) => authApi.register(userData),
     [],
   );
 
-  const logout = useCallback(() => {
-    storeLogout();
-  }, [storeLogout]);
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      // Even if the server call fails the local session ends.
+      clearSession();
+    }
+  }, [clearSession]);
 
   return { user, isAuthenticated, isLoading, login, signup, logout };
 };

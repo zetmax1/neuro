@@ -1,239 +1,144 @@
-// import { Link, useLocation, useNavigate } from "react-router-dom";
-// import { Button } from "@/components/ui/button";
-// import { Brain, Search, User, Menu, LogOut } from "lucide-react";
-// import { useState } from "react";
-// import { useAuthContext } from "@/contexts/AuthContext";
-
-// const Header = () => {
-//   const location = useLocation();
-//   const navigate = useNavigate();
-//   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-//   const { user, logout } = useAuthContext();
-  
-//   const isActive = (path: string) => location.pathname === path;
-  
-//   const navLinks = [
-//     { path: "/dashboard", label: "Dashboard" },
-//     { path: "/learning-path", label: "Learning Path" },
-//     { path: "/courses", label: "Courses" },
-//     { path: "/search", label: "Search" },
-//   ];
-
-//   const handleLogout = () => {
-//     logout();
-//     navigate("/");
-//   };
-
-//   return (
-//     <header className="sticky top-0 z-50 glass border-b border-border/50">
-//       <div className="container mx-auto px-4">
-//         <div className="flex items-center justify-between h-16">
-//           {/* Logo */}
-//           <Link to="/" className="flex items-center gap-2 group">
-//             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-glow transition-shadow duration-300">
-//               <Brain className="w-6 h-6 text-white" />
-//             </div>
-//             <span className="text-xl font-semibold text-foreground hidden sm:block">
-//               Neuro<span className="text-primary">Learn</span>
-//             </span>
-//           </Link>
-
-//           {/* Desktop Navigation */}
-//           <nav className="hidden md:flex items-center gap-1">
-//             {navLinks.map((link) => (
-//               <Link
-//                 key={link.path}
-//                 to={link.path}
-//                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-//                   isActive(link.path)
-//                     ? "bg-primary/10 text-primary"
-//                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-//                 }`}
-//               >
-//                 {link.label}
-//               </Link>
-//             ))}
-//           </nav>
-
-//           {/* Right Side Actions */}
-//           <div className="flex items-center gap-2">
-//             {user ? (
-//               <>
-//                 <Link to="/profile">
-//                   <Button variant="ghost" size="icon" className="text-muted-foreground">
-//                     <User className="w-5 h-5" />
-//                   </Button>
-//                 </Link>
-//                 <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleLogout} title="Sign out">
-//                   <LogOut className="w-5 h-5" />
-//                 </Button>
-//               </>
-//             ) : (
-//               <Link to="/auth">
-//                 <Button variant="default" size="sm">Sign In</Button>
-//               </Link>
-//             )}
-//             <Button 
-//               variant="ghost" 
-//               size="icon" 
-//               className="md:hidden text-muted-foreground"
-//               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-//             >
-//               <Menu className="w-5 h-5" />
-//             </Button>
-//           </div>
-//         </div>
-
-//         {/* Mobile Navigation */}
-//         {mobileMenuOpen && (
-//           <nav className="md:hidden py-4 border-t border-border/50 animate-slide-up">
-//             {navLinks.map((link) => (
-//               <Link
-//                 key={link.path}
-//                 to={link.path}
-//                 onClick={() => setMobileMenuOpen(false)}
-//                 className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-//                   isActive(link.path)
-//                     ? "bg-primary/10 text-primary"
-//                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-//                 }`}
-//               >
-//                 {link.label}
-//               </Link>
-//             ))}
-//           </nav>
-//         )}
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Header;
-
-
-
-
-
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Brain, User, Menu, LogOut } from "lucide-react";
+import { Brain, LogOut, Menu, User } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import type { Role } from "@/api/types";
+import LanguageSwitch from "@/components/layout/LanguageSwitch";
+import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useAuthStore } from "@/store/authStore";
 import { TUTOR_ENABLED } from "@/lib/features";
+import { useAuthStore } from "@/store/authStore";
+import { cn } from "@/lib/utils";
+
+/**
+ * The menu follows the role the API reports (D28):
+ *
+ * - student: home, learning path, practice and tests, review mistakes;
+ * - instructor: and the curriculum builder;
+ * - admin: and users.
+ *
+ * "Courses" is gone — it duplicated the learning path's course list and the
+ * dashboard's knowledge map (addendum 2.4). So is the search page, which
+ * showed a hard-coded concept list (D23).
+ */
+
+interface NavItem {
+  path: string;
+  label: string;
+  roles?: Role[];
+}
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { logout } = useAuthContext();
   const { user } = useAuthStore();
-  
+
   const isActive = (path: string) => location.pathname === path;
-  
-  const navLinks = [
-    { path: "/dashboard", label: "Dashboard" },
-    { path: "/learning-path", label: "Learning Path" },
-    { path: "/assessment", label: "Assessments" },
-    { path: "/courses", label: "Courses" },
+
+  const navLinks: NavItem[] = [
+    { path: "/dashboard", label: t("nav.dashboard") },
+    { path: "/learning-path", label: t("nav.learning_path") },
+    { path: "/assessment", label: t("nav.assessments") },
+    { path: "/mistakes", label: t("nav.mistakes") },
+    { path: "/instructor/curriculum-builder", label: t("nav.curriculum_builder"), roles: ["instructor", "admin"] },
+    { path: "/admin/users", label: t("nav.users"), roles: ["admin"] },
   ];
 
   if (TUTOR_ENABLED) {
-    navLinks.push({ path: "/tutor", label: "AI Tutor" });
+    navLinks.push({ path: "/tutor", label: t("nav.tutor") });
   }
 
-  if (user?.role === 'instructor' || user?.role === 'admin') {
-    navLinks.push({ path: "/instructor/curriculum-builder", label: "Curriculum Builder" });
-  }
+  const visible = navLinks.filter(
+    (link) => !link.roles || (user?.role !== undefined && link.roles.includes(user.role)),
+  );
 
-  if (user?.role === 'admin') {
-    navLinks.push({ path: "/admin/users", label: "User Management" });
-  }
-
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo - Cleaner, typographic focus */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <Brain className="w-6 h-6 text-primary" />
-            <span className="text-lg font-bold tracking-tight text-foreground hidden sm:block">
-              NeuroLearn
+        <div className="flex h-16 items-center justify-between">
+          <Link to={user ? "/dashboard" : "/"} className="group flex items-center gap-2">
+            <Brain className="h-6 w-6 text-primary" aria-hidden />
+            <span className="hidden text-lg font-bold tracking-tight text-foreground sm:block">
+              {t("app.name")}
             </span>
           </Link>
 
-          {/* Desktop Navigation - Clean, subtle hover states */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
+          <nav className="hidden items-center gap-6 md:flex" aria-label={t("nav.menu")}>
+            {visible.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors ${
-                  isActive(link.path)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                data-testid={`nav-${link.path.replace(/\//g, "-")}`}
+                className={cn(
+                  "text-sm font-medium transition-colors",
+                  isActive(link.path) ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <LanguageSwitch />
             {user ? (
               <>
-                <Link to="/profile">
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                    <User className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={handleLogout} title="Sign out">
-                  <LogOut className="w-4 h-4" />
+                <Button variant="ghost" size="icon" asChild title={t("nav.profile")}>
+                  <Link to="/profile" aria-label={t("nav.profile")}>
+                    <User className="h-4 w-4" aria-hidden />
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  title={t("nav.logout")}
+                  aria-label={t("nav.logout")}
+                >
+                  <LogOut className="h-4 w-4" aria-hidden />
                 </Button>
               </>
             ) : (
-              <>
-                <Link to="/auth" className="hidden sm:block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mr-2">
-                  Log in
-                </Link>
-                <Link to="/auth">
-                  <Button size="sm" className="rounded-full px-4">Get Started</Button>
-                </Link>
-              </>
+              <Button asChild size="sm" className="rounded-full px-4">
+                <Link to="/auth">{t("nav.login")}</Link>
+              </Button>
             )}
-            
-            {/* Mobile Toggle */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="md:hidden text-muted-foreground"
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={t("nav.menu")}
+              aria-expanded={mobileMenuOpen}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="h-5 w-5" aria-hidden />
             </Button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-border space-y-1">
-            {navLinks.map((link) => (
+          <nav className="space-y-1 border-t border-border py-4 md:hidden" aria-label={t("nav.menu")}>
+            {visible.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`block px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={cn(
+                  "block rounded-md px-4 py-2 text-sm font-medium transition-colors",
                   isActive(link.path)
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                }`}
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                )}
               >
                 {link.label}
               </Link>

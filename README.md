@@ -1,65 +1,97 @@
-# Knowledge Bloom - Educational Platform
+# NeuroLearn — frontend
 
-## Project Info
+The React interface of NeuroLearn, an adaptive learning platform built on a
+knowledge graph and a student model. It is the client for the Django backend
+in `neuro_dj`; the model itself — BKT with bounded guess and slip, Elo on
+ability and item difficulty, prerequisite-aware priors, readiness and the
+trajectory — runs there. This app renders what the API reports and never
+recomputes it.
 
-Knowledge Bloom is an educational platform designed to enhance learning through interactive assessments, adaptive support, and comprehensive progress tracking.
+## Requirements
 
-## How to Work with this Codebase
+- Node.js 20+ and npm
+- The backend running and reachable (default `http://localhost:8000`)
 
-There are several ways to work with this application:
-
-**Local Development**
-
-To work locally with your preferred IDE, you can clone this repo and make changes:
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Running it
 
 ```sh
-# Step 1: Navigate to the project directory.
-cd knowledge-bloom
-
-# Step 2: Install the necessary dependencies.
 npm install
-
-# Step 3: Start the development server with auto-reloading and an instant preview.
-npm run dev
+cp .env.example .env     # then edit if the backend is not on :8000
+npm run dev              # http://localhost:8080
 ```
 
-**Edit files directly**
-
-- Navigate to the desired file(s) in your local environment
-- Make your changes and save the files
-- Test the changes by running the development server
-
-## Environment variables
-
-| Variable | Purpose |
+| Script | What it does |
 |---|---|
-| `VITE_API_URL` | Backend base URL |
-| `VITE_ENABLE_TUTOR` | `true` shows the AI tutor page and menu entry. Off by default: the tutor is outside the thesis scope (D17, D24) |
+| `npm run dev` | Dev server with hot reload |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the production build |
+| `npm run lint` | ESLint over the whole project |
+| `npm test` | Vitest once |
+| `npm run test:watch` | Vitest in watch mode |
 
-## What technologies are used for this project?
+Type checking is not a separate script; run `npx tsc -p tsconfig.app.json
+--noEmit`.
 
-This project is built with:
+## Environment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- Supabase (for backend services)
+| Variable | Default | Meaning |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8000` | Backend origin. The client sends credentials, so this origin must be in the backend's `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`. |
+| `VITE_ENABLE_TUTOR` | unset (off) | The AI tutor is outside the thesis scope (D17, D24). Only `"true"` enables its route and menu entry; its code is kept but not bundled otherwise. |
 
-## How can I deploy this project?
+## Authentication
 
-Deployment options include:
+The access token is held in memory only, and the refresh token is an
+`HttpOnly` cookie the browser sends on its own (D16) — neither is in
+`localStorage`, which is what audit 7.3 flagged. A reload therefore has no
+token: the app asks `POST /api/accounts/token/refresh/` once on start and
+signs the learner in silently if the cookie is still valid.
 
-- Deploy to Vercel
-- Deploy to Netlify  
-- Self-host on your preferred platform
+Because the cookie travels automatically, every unsafe request carries a CSRF
+token. The client fetches it from `GET /api/accounts/csrf/` and sends it back
+as `X-CSRFToken`; this is why `withCredentials` is on and why the backend
+origin must trust this one.
 
-## Thesis Defense Seeding
+## Layout
 
-Before defense: run `python manage.py seed_thesis_demo` to reset to a clean, presentable demo state.
+```
+src/
+  api/          one module per backend area, plus shared domain types
+  components/
+    common/     status badge, legend, k / n ratio, trajectory, missing prerequisites
+    learning-path/  React Flow nodes: a topic and a course/section frame
+    topic/      the "how this was calculated" panel
+    instructor/ the curriculum builder's parts, including the prerequisite editor
+    ui/         shadcn primitives (vendor)
+  hooks/        react-query data hooks (D19), the adaptive quiz, graph layout
+  lib/          format, status palette, reason codes, KB errors, i18n
+  locales/      uz.json and en.json — every string in the interface (D20)
+  pages/        one file per route, all lazily loaded
+```
 
+Three modules are worth knowing before changing anything:
+
+- **`lib/format.ts`** — the only place numbers become text. Probabilities
+  (`p_mastery`, `accuracy`, p̂) are in [0, 1] and render as percentages; a test
+  grade is already a percentage. Mixing the two produced both of the scale
+  bugs the audit found ("0.8%" and "100%").
+- **`lib/status.ts`** — the one palette for the five statuses (D21), used by
+  graph nodes, cards, the heatmap and the legend alike.
+- **`lib/reasons.ts`** — the backend returns `{code, params}` and never a
+  sentence; this maps a code to its key in the locale files.
+
+## Language
+
+Uzbek (Latin) is the primary language and English is optional (D20). Every
+string lives in `src/locales/*.json`; a test keeps the two files at exact key
+parity, so a missing translation fails the suite rather than leaking a key
+into the interface.
+
+## Notes
+
+- Routes are code-split with `React.lazy`. The entry chunk is ~182 kB
+  (~59 kB gzipped); three.js, recharts and React Flow load with the pages that
+  need them.
+- `data-testid` is set on the elements an end-to-end suite needs: graph nodes
+  and containers, status badges, trajectory items, quiz choices, the
+  prerequisite editor and its warnings panel.

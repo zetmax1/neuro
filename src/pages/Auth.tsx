@@ -74,8 +74,8 @@ const Auth = () => {
     try {
       await login(data.email, data.password);
       navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      const msg = err.message || "";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
       if (
         msg.toLowerCase().includes("no active account") ||
         msg.toLowerCase().includes("invalid") ||
@@ -91,15 +91,21 @@ const Auth = () => {
   const handleSignup = async (data: SignupValues) => {
     setServerError(null);
     try {
-      await signup(data);
+      await signup({
+        email: data.email,
+        password: data.password,
+        password_confirm: data.password_confirm,
+        first_name: data.first_name,
+        last_name: data.last_name,
+      });
       // Don't auto-login; switch to sign-in view with success banner
       setSuccessMessage("Account created successfully! Please sign in.");
       signupForm.reset();
       setIsSignup(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Try to parse Django DRF field-level errors
       try {
-        const parsed = JSON.parse(err.message);
+        const parsed = JSON.parse(err instanceof Error ? err.message : "{}");
         let hasField = false;
 
         Object.entries(parsed).forEach(([key, value]) => {
@@ -116,7 +122,7 @@ const Auth = () => {
           setServerError("Registration failed. Please check your details.");
         }
       } catch {
-        setServerError(err.message || "Registration failed. Please try again.");
+        setServerError(err instanceof Error ? err.message : "Registration failed. Please try again.");
       }
     }
   };

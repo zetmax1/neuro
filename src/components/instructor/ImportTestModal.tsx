@@ -53,9 +53,10 @@ export const ImportTestModal: React.FC<ImportTestModalProps> = ({
       setSelectedFile(null);
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       // The backend lists problems per question (Y4, 2–4 options, one correct answer).
-      const firstError = err.response?.data?.errors?.[0];
+      const body = (err as { response?: { data?: { errors?: { question: number; message: string }[] } } }).response?.data;
+      const firstError = body?.errors?.[0];
       const detail = getApiErrorMessage(err, "Failed to import questions. Please check the template format.");
       toast.error(firstError ? `${detail} Question ${firstError.question}: ${firstError.message}` : detail);
     } finally {

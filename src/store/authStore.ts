@@ -1,4 +1,15 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+
+import type { Role } from "@/api/types";
+
+/**
+ * The session, in memory only (D16).
+ *
+ * Audit 7.3 found both JWTs in localStorage. The access token now lives here
+ * and nowhere else: a reload loses it and the client silently refreshes from
+ * the httpOnly cookie, which no script can read. Nothing in this store is
+ * persisted.
+ */
 
 export interface User {
   id?: number;
@@ -8,54 +19,41 @@ export interface User {
   is_active?: boolean;
   is_staff?: boolean;
   date_joined?: string;
-  role?: 'admin' | 'instructor' | 'student';
+  role?: Role;
   is_deleted?: boolean;
+  is_simulated?: boolean;
   deleted_at?: string;
 }
 
 interface AuthState {
   accessToken: string | null;
   user: User | null;
+  /** True once a token is held; the profile may still be loading. */
   isAuthenticated: boolean;
+  /** True while the first silent refresh is in flight. */
   isLoading: boolean;
-  setCredentials: (token: string, user?: User | null) => void;
+  setSession: (token: string, user?: User | null) => void;
+  setAccessToken: (token: string) => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
-  logout: () => void;
+  clearSession: () => void;
 }
 
-const initialToken = localStorage.getItem('accessToken');
-
 export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: initialToken,
+  accessToken: null,
   user: null,
-  isAuthenticated: !!initialToken,
+  isAuthenticated: false,
   isLoading: true,
 
-  setCredentials: (token, user = null) => {
-    localStorage.setItem('accessToken', token);
-    set({
-      accessToken: token,
-      user,
-      isAuthenticated: true,
-    });
-  },
+  setSession: (token, user = null) =>
+    set({ accessToken: token, user, isAuthenticated: true, isLoading: false }),
 
-  setUser: (user) => {
-    set({ user });
-  },
+  setAccessToken: (token) => set({ accessToken: token, isAuthenticated: true }),
 
-  setLoading: (loading) => {
-    set({ isLoading: loading });
-  },
+  setUser: (user) => set({ user }),
 
-  logout: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    set({
-      accessToken: null,
-      user: null,
-      isAuthenticated: false,
-    });
-  },
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  clearSession: () =>
+    set({ accessToken: null, user: null, isAuthenticated: false, isLoading: false }),
 }));

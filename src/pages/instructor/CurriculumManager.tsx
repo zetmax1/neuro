@@ -45,7 +45,6 @@ const topicSchema = z.object({
   description: z.string().default(""),
   position: z.coerce.number().min(0, "Position must be positive"),
   parent: z.number().nullable(),
-  is_unlocked: z.boolean().default(true),
   // Stage 2: course = root; only topics hold questions (Y4).
   kind: z.enum(["course", "section", "topic"]).optional(),
 });
@@ -91,8 +90,7 @@ const CurriculumManager: React.FC = () => {
       slug: "",
       description: "",
       position: 0,
-      parent: null,
-      is_unlocked: true
+      parent: null
     }
   });
 
@@ -115,7 +113,7 @@ const CurriculumManager: React.FC = () => {
     try {
       const data = await getTopics();
       setTopics(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load curriculum topics");
     } finally {
       setIsLoading(false);
@@ -131,7 +129,7 @@ const CurriculumManager: React.FC = () => {
     try {
       const qData = await getQuestionsByTopic(topicId);
       setQuestions(qData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load questions for this topic");
     } finally {
       setIsQuestionsLoading(false);
@@ -143,7 +141,7 @@ const CurriculumManager: React.FC = () => {
     try {
       const rData = await getResourcesByTopic(topicId);
       setResources(rData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to load resources for this topic");
     } finally {
       setIsResourcesLoading(false);
@@ -162,7 +160,6 @@ const CurriculumManager: React.FC = () => {
       description: topic.description || "",
       position: topic.position || 0,
       parent: topic.parent ? Number(topic.parent) : null,
-      is_unlocked: topic.is_unlocked,
       kind: topic.kind,
     });
   };
@@ -179,7 +176,6 @@ const CurriculumManager: React.FC = () => {
       description: "",
       position: topics.length,
       parent: null,
-      is_unlocked: true,
       kind: "course",
     });
   };
@@ -196,28 +192,38 @@ const CurriculumManager: React.FC = () => {
       description: "",
       position: 0,
       parent: parentTopic.id,
-      is_unlocked: true,
       kind: "topic",
     });
   };
 
   const onSubmit = async (values: TopicFormValues) => {
+    // Built explicitly: zod defaults leave the inferred form type partial,
+    // and the API contract is required fields.
+    const payload = {
+      name: values.name,
+      slug: values.slug,
+      description: values.description ?? "",
+      position: values.position ?? 0,
+      parent: values.parent ?? null,
+      ...(values.kind ? { kind: values.kind } : {}),
+    };
+
     try {
       if (selectedTopic) {
         // Update
-        const updated = await updateTopic(selectedTopic.id, values);
+        const updated = await updateTopic(selectedTopic.id, payload);
         toast.success("Topic updated successfully");
         setSelectedTopic(updated);
       } else {
         // Create
-        const created = await createTopic(values);
+        const created = await createTopic(payload);
         toast.success("Topic created successfully");
         setSelectedTopic(created);
         setIsCreatingChild(false);
         setIsCreatingRoot(false);
       }
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to save topic"));
     }
   };
@@ -235,7 +241,7 @@ const CurriculumManager: React.FC = () => {
       setQuestions([]);
       setResources([]);
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to delete topic"));
     }
   };
@@ -284,8 +290,8 @@ const CurriculumManager: React.FC = () => {
 
       // Reload
       await loadResources(selectedTopic.id);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to upload resource");
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Failed to upload resource"));
     } finally {
       setIsUploadingResource(false);
     }
@@ -299,7 +305,7 @@ const CurriculumManager: React.FC = () => {
       if (selectedTopic) {
         await loadResources(selectedTopic.id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to delete resource");
     }
   };
@@ -501,17 +507,6 @@ const CurriculumManager: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center pt-8 pl-2">
-                      <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
-                        <input 
-                          type="checkbox"
-                          {...register("is_unlocked")}
-                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        />
-                        Unlocked initially
-                      </label>
-                    </div>
-
                     <div className="sm:col-span-2 flex justify-end pt-4 border-t border-slate-100 mt-2">
                       <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-8 h-12 shadow-sm">
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -588,7 +583,7 @@ const CurriculumManager: React.FC = () => {
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Resource Type</label>
                         <select 
                           value={resourceType} 
-                          onChange={e => setResourceType(e.target.value as any)}
+                          onChange={e => setResourceType(e.target.value as never)}
                           className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none text-sm bg-white"
                         >
                           <option value="DOCUMENT">Document (PDF/Doc)</option>

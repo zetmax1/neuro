@@ -1,335 +1,385 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  ReactFlow, 
-  Controls, 
-  Background, 
-  ReactFlowProvider, 
-  Panel,
-  NodeMouseHandler,
-  useReactFlow
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { useLearningPath, RootTopicInfo } from '@/hooks/useLearningPath';
-import { usePrerequisiteGraph } from '@/hooks/usePrerequisiteGraph';
-import CustomTopicNode from '@/components/learning-path/CustomTopicNode';
-import Header from '@/components/layout/Header';
-import { 
-  Loader2, 
-  AlertCircle, 
-  GitBranch, 
-  Network, 
-  BookOpen, 
-  ChevronRight, 
-  Layers, 
-  Search, 
-  PanelLeftClose, 
-  PanelLeft,
-  Sparkles,
-  CheckCircle2
-} from 'lucide-react';
-import { toast } from 'sonner';
+import {
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+  type Node,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, X } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
-type ViewMode = 'tree' | 'dag';
+import { getLeafEdges } from "@/api/instructor.api";
+import type { TopicStatus } from "@/api/types";
+import MasteryRatio from "@/components/common/MasteryRatio";
+import MissingPrerequisites from "@/components/common/MissingPrerequisites";
+import StatusBadge from "@/components/common/StatusBadge";
+import StatusLegend from "@/components/common/StatusLegend";
+import Header from "@/components/layout/Header";
+import ContainerNode from "@/components/learning-path/ContainerNode";
+import CustomTopicNode from "@/components/learning-path/CustomTopicNode";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  usePathTo,
+  usePrerequisiteGraphData,
+} from "@/hooks/useLearningData";
+import { minimapColor, useGraphLayout, type GraphLayout, type GraphView } from "@/hooks/useGraphLayout";
+import { formatProbability } from "@/lib/format";
 
-const LearningPathCanvas: React.FC = () => {
-  const navigate = useNavigate();
-  const reactFlowInstance = useReactFlow();
+/**
+ * The learning path (addendum 2.2) — the central screen of the thesis.
+ *
+ * Three views: two layers (the default; courses and sections as frames with
+ * their topics inside, figures 2.2 and 2.3), the DAG by `lev` columns, and the
+ * containment tree. Inherited G_L edges are dashed behind a toggle.
+ *
+ * Clicking a topic opens a side panel with its status and P(L), the missing
+ * prerequisites with their own P(L), and buttons to practise or to show the
+ * path to it. "Path to this topic" highlights Need(g) and dims the rest.
+ */
 
-  const [viewMode, setViewMode] = useState<ViewMode>('tree');
-  const [selectedRootId, setSelectedRootId] = useState<number | null>(null); // null = All Curriculums
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+const nodeTypes = { customTopic: CustomTopicNode, container: ContainerNode };
 
-  const tree = useLearningPath(selectedRootId);
-  const dag = usePrerequisiteGraph(selectedRootId);
+const LearningPathPage = () => (
+  <ReactFlowProvider>
+    <LearningPath />
+  </ReactFlowProvider>
+);
 
-  // Active dataset based on view mode
-  const active = viewMode === 'tree' ? tree : dag;
-  const { nodes, edges, onNodesChange, onEdgesChange, isLoading, error } = active;
-  const rootTopics: RootTopicInfo[] = tree.rootTopics || [];
+const LearningPath = () => {
+  const { t } = useTranslation();
+  const [view, setView] = useState<GraphView>("two-layer");
+  const [layout, setLayout] = useState<GraphLayout>("lev");
+  const [showInherited, setShowInherited] = useState(false);
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [goalId, setGoalId] = useState<number | null>(null);
 
-  // Register custom node types
-  const nodeTypes = useMemo(() => ({ customTopic: CustomTopicNode }), []);
+  const graph = usePrerequisiteGraphData();
+  // G_L is served by the same endpoint family; instructors and students alike
+  // need it to see which edges are inherited.
+  const leafEdges = useQuery({
+    queryKey: ["curriculum", "leaf-edges"],
+    queryFn: getLeafEdges,
+    retry: false,
+  });
+  const path = usePathTo(goalId);
 
-  // Auto fit view whenever nodes change or curriculum selection changes
-  useEffect(() => {
-    if (nodes.length > 0 && reactFlowInstance) {
-      setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.35, duration: 400 });
-      }, 100);
-    }
-  }, [selectedRootId, viewMode, nodes.length, reactFlowInstance]);
+  const pathTopics = useMemo(
+    () => (path.data ? path.data.path.map((step) => step.topic_id) : []),
+    [path.data],
+  );
 
-  // Handle node clicks
-  const onNodeClick: NodeMouseHandler = (_, node) => {
-    const { is_unlocked, label } = node.data as { is_unlocked: boolean; label: string };
-    
-    if (!is_unlocked) {
-      toast.error("Prerequisites not met", {
-        description: `You must master prerequisite topics before unlocking ${label}.`
-      });
-      return;
-    }
+  const input = useMemo(
+    () =>
+      graph.data
+        ? { nodes: graph.data.nodes, edges: graph.data.edges, leafEdges: leafEdges.data ?? [] }
+        : undefined,
+    [graph.data, leafEdges.data],
+  );
 
-    navigate(`/topic/${node.id}`);
-  };
+  const { nodes, edges } = useGraphLayout(input, {
+    view,
+    layout,
+    showInherited,
+    courseId,
+    pathTopics,
+  });
 
-  // Filter root topics by search query
-  const filteredRootTopics = useMemo(() => {
-    if (!searchQuery.trim()) return rootTopics;
-    return rootTopics.filter(rt => rt.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [rootTopics, searchQuery]);
+  const courses = useMemo(
+    () => (graph.data?.nodes ?? []).filter((node) => node.data.kind === "course"),
+    [graph.data],
+  );
 
-  const selectedRootTopic = useMemo(() => {
-    if (selectedRootId === null) return null;
-    return rootTopics.find(rt => rt.id === selectedRootId) || null;
-  }, [rootTopics, selectedRootId]);
+  const selected = useMemo(
+    () => (graph.data?.nodes ?? []).find((node) => Number(node.id) === selectedId),
+    [graph.data, selectedId],
+  );
+
+  const onNodeClick = useCallback((_: unknown, node: Node) => {
+    setSelectedId(Number(node.id));
+  }, []);
+
+  if (graph.isLoading) {
+    return (
+      <Shell>
+        <Skeleton className="h-[70vh] w-full" />
+      </Shell>
+    );
+  }
+
+  if (graph.isError) {
+    return (
+      <Shell>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <AlertCircle className="h-5 w-5 text-destructive" aria-hidden />
+            <p className="text-sm text-muted-foreground">{t("common.error")}</p>
+            <Button variant="outline" size="sm" onClick={() => void graph.refetch()}>
+              {t("common.retry")}
+            </Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
 
   return (
-    <div className="flex-1 w-full h-full flex relative overflow-hidden bg-slate-50">
-      
-      {/* ============================================================ */}
-      {/* LEFT CURRICULUM SIDEBAR                                       */}
-      {/* ============================================================ */}
-      <aside 
-        className={`bg-white border-r border-slate-200 shadow-md flex flex-col transition-all duration-300 z-20 shrink-0 ${
-          isSidebarOpen ? 'w-80' : 'w-0 border-r-0'
-        }`}
-      >
-        {isSidebarOpen && (
-          <div className="flex flex-col h-full">
-            {/* Sidebar Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-extrabold text-slate-900 leading-none">Curriculums</h2>
-                  <span className="text-[11px] text-slate-500 font-medium">Select to view graph</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsSidebarOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                title="Collapse Sidebar"
+    <Shell>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1" role="group" aria-label={t("learning.title")}>
+          {(["two-layer", "tree", "dag"] as GraphView[]).map((option) => (
+            <Button
+              key={option}
+              size="sm"
+              variant={view === option ? "default" : "outline"}
+              onClick={() => setView(option)}
+              data-testid={`view-${option}`}
+            >
+              {t(option === "two-layer" ? "learning.mode_two_layer" : option === "tree" ? "learning.mode_tree" : "learning.mode_dag")}
+            </Button>
+          ))}
+        </div>
+
+        {view === "dag" && (
+          <div className="flex gap-1">
+            {(["lev", "dagre"] as GraphLayout[]).map((option) => (
+              <Button
+                key={option}
+                size="sm"
+                variant={layout === option ? "secondary" : "ghost"}
+                onClick={() => setLayout(option)}
               >
-                <PanelLeftClose className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Search Input */}
-            <div className="p-3 border-b border-slate-100 bg-slate-50/50">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter curriculum paths..."
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Curriculum List */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              
-              {/* ALL CURRICULUMS ITEM */}
-              <button
-                onClick={() => setSelectedRootId(null)}
-                className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between ${
-                  selectedRootId === null
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/30'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                    selectedRootId === null ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold leading-snug">All Curriculums</h3>
-                    <p className={`text-[10px] font-medium ${selectedRootId === null ? 'text-indigo-100' : 'text-slate-400'}`}>
-                      Combined Global View ({rootTopics.length} Paths)
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className={`w-4 h-4 ${selectedRootId === null ? 'text-white' : 'text-slate-400'}`} />
-              </button>
-
-              <div className="pt-2 pb-1 px-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Individual Paths ({filteredRootTopics.length})
-                </span>
-              </div>
-
-              {/* INDIVIDUAL ROOT CURRICULUM ITEMS */}
-              {filteredRootTopics.map((rt) => {
-                const isSelected = selectedRootId === rt.id;
-                return (
-                  <button
-                    key={rt.id}
-                    onClick={() => setSelectedRootId(rt.id)}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all group ${
-                      isSelected
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-950 shadow-sm ring-1 ring-indigo-500/20'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50/80'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                        <h3 className="text-xs font-bold truncate leading-tight group-hover:text-indigo-600 transition-colors">
-                          {rt.name}
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                        {rt.total_submodules} Topics
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-400 font-medium">Mastery</span>
-                        <span className="font-bold text-slate-700">{rt.mastery_percentage}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.max(4, rt.mastery_percentage)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                {t(option === "lev" ? "learning.layout_lev" : "learning.layout_dagre")}
+              </Button>
+            ))}
           </div>
         )}
-      </aside>
 
-      {/* ============================================================ */}
-      {/* MAIN CANVAS CONTAINER                                         */}
-      {/* ============================================================ */}
-      <div className="flex-1 h-full relative">
-        
-        {/* Toggle Sidebar Button when collapsed */}
-        {!isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="absolute top-4 left-4 z-30 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-md text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition-all flex items-center gap-2 text-xs font-bold"
+        <Button
+          size="sm"
+          variant={showInherited ? "secondary" : "ghost"}
+          onClick={() => setShowInherited((value) => !value)}
+          data-testid="toggle-inherited"
+        >
+          {t(showInherited ? "learning.hide_inherited" : "learning.show_inherited")}
+        </Button>
+
+        <div className="ml-auto flex flex-wrap gap-1">
+          <Button
+            size="sm"
+            variant={courseId === null ? "default" : "outline"}
+            onClick={() => setCourseId(null)}
           >
-            <PanelLeft className="w-4 h-4 text-indigo-600" />
-            <span>Show Curriculums Sidebar</span>
-          </button>
-        )}
+            {t("learning.all_courses")}
+          </Button>
+          {courses.map((course) => (
+            <Button
+              key={course.id}
+              size="sm"
+              variant={courseId === Number(course.id) ? "default" : "outline"}
+              onClick={() => setCourseId(Number(course.id))}
+            >
+              {course.data.label || course.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-        {isLoading ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50">
-            <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-            <p className="text-slate-700 font-bold text-base">Rendering Isolated Curriculum Graph...</p>
-            <p className="text-slate-400 text-xs mt-1">Dagre engine layout optimization</p>
-          </div>
-        ) : error ? (
-          <div className="w-full h-full flex items-center justify-center p-6">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-rose-200 text-center max-w-md">
-              <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-              <h2 className="text-lg font-bold text-slate-900 mb-1">Failed to Load Graph</h2>
-              <p className="text-slate-500 text-xs">{error.message}</p>
-            </div>
-          </div>
-        ) : (
+      {goalId !== null && (
+        <GoalBanner
+          goalId={goalId}
+          onClear={() => setGoalId(null)}
+          steps={path.data?.path.length ?? 0}
+          reachable={path.data?.need.length === 0}
+        />
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div
+          className="h-[70vh] overflow-hidden rounded-xl border border-border bg-background"
+          data-testid="learning-path-canvas"
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange as any}
-            onEdgesChange={onEdgesChange as any}
             nodeTypes={nodeTypes}
             onNodeClick={onNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.35 }}
             minZoom={0.2}
-            maxZoom={1.5}
-            className="bg-slate-50/80"
+            maxZoom={1.6}
+            proOptions={{ hideAttribution: true }}
           >
-            <Background color="#94a3b8" gap={24} size={1.5} />
-            <Controls className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden" />
-            
-            {/* Top Left Floating Header & View Mode Switcher */}
-            <Panel 
-              position="top-left" 
-              className={`bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-md border border-slate-200/80 transition-all duration-300 max-w-md ${
-                !isSidebarOpen ? 'ml-52' : 'ml-4'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-4 mb-3 pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
-                  <h1 className="text-sm font-extrabold text-slate-900">
-                    {selectedRootTopic ? selectedRootTopic.name : 'All Curriculum Paths'}
-                  </h1>
-                </div>
-
-                {/* View Mode Toggle */}
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('tree')}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                      viewMode === 'tree'
-                        ? 'bg-white text-indigo-600 shadow-xs font-extrabold'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <GitBranch className="w-3.5 h-3.5" />
-                    Tree
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('dag')}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                      viewMode === 'dag'
-                        ? 'bg-white text-indigo-600 shadow-xs font-extrabold'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <Network className="w-3.5 h-3.5" />
-                    DAG Graph
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {selectedRootTopic ? (
-                  <>Viewing isolated graph layout for <strong className="text-slate-800">{selectedRootTopic.name}</strong>. Click any unlocked module card to launch a test or start learning.</>
-                ) : (
-                  <>Viewing all active curriculum pathways. Click any curriculum name in the left sidebar to isolate and zoom into its individual graph tree.</>
-                )}
-              </p>
-            </Panel>
+            <Background gap={18} />
+            <Controls showInteractive={false} />
+            <MiniMap nodeColor={minimapColor} pannable zoomable />
           </ReactFlow>
-        )}
+        </div>
+
+        <aside className="space-y-4">
+          {selected ? (
+            <TopicPanel
+              node={selected}
+              onShowPath={() => setGoalId(Number(selected.id))}
+              onClose={() => setSelectedId(null)}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                {t("learning.panel_title")}
+              </CardContent>
+            </Card>
+          )}
+          <StatusLegend withEdges className="rounded-xl border border-border p-3" />
+        </aside>
       </div>
-    </div>
+    </Shell>
   );
 };
 
-const LearningPath: React.FC = () => {
+const TopicPanel = ({
+  node,
+  onShowPath,
+  onClose,
+}: {
+  node: { id: string; label: string; data: { label: string; kind?: string; status: TopicStatus; p_mastery: number; accuracy: number; mastered: boolean; missing_count: number; lev?: number | null } };
+  onShowPath: () => void;
+  onClose: () => void;
+}) => {
+  const { t } = useTranslation();
+  const topicId = Number(node.id);
+  const isTopic = (node.data.kind ?? "topic") === "topic";
+
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <Header />
-      <div className="flex-1 w-full relative min-h-0">
-        <ReactFlowProvider>
-          <LearningPathCanvas />
-        </ReactFlowProvider>
+    <Card data-testid="topic-panel">
+      <CardContent className="space-y-4 py-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t(`kind.${node.data.kind ?? "topic"}`)}
+            </p>
+            <h2 className="truncate text-lg font-semibold">{node.data.label || node.label}</h2>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={t("common.close")}>
+            <X className="h-4 w-4" aria-hidden />
+          </Button>
+        </div>
+
+        {/* D22: only a topic has a status; a section or course shows k / n. */}
+        {isTopic ? (
+          <>
+            <div className="flex items-center gap-2">
+              <StatusBadge status={node.data.status} />
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {t("metric.p_mastery")} {formatProbability(node.data.p_mastery)}
+              </span>
+            </div>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">{t("metric.accuracy")}</dt>
+                <dd className="font-medium tabular-nums">{formatProbability(node.data.accuracy)}</dd>
+              </div>
+              {node.data.lev !== null && node.data.lev !== undefined && (
+                <div>
+                  <dt className="text-xs text-muted-foreground">lev</dt>
+                  <dd className="font-medium tabular-nums">{node.data.lev}</dd>
+                </div>
+              )}
+            </dl>
+            <PanelMissing topicId={topicId} status={node.data.status} onShowPath={onShowPath} />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" asChild disabled={node.data.status === "closed"}>
+                <Link to={`/topic/${topicId}/assessment?mode=practice`}>{t("learning.practice")}</Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <Link to={`/topic/${topicId}`}>{t("learning.open_topic")}</Link>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("metric.mastered_of", { done: 0, total: 0 })}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+/** The unmet prerequisites come from the topic history endpoint. */
+const PanelMissing = ({
+  topicId,
+  status,
+  onShowPath,
+}: {
+  topicId: number;
+  status: TopicStatus;
+  onShowPath: () => void;
+}) => {
+  const detail = useQuery({
+    queryKey: ["learning", "topic-history", String(topicId)],
+    queryFn: async () => (await import("@/api/learning.api")).getTopicHistory(topicId),
+    enabled: status === "closed",
+  });
+
+  if (status !== "closed") return null;
+  if (!detail.data) return null;
+
+  return <MissingPrerequisites missing={detail.data.missing} onShowPath={onShowPath} />;
+};
+
+const GoalBanner = ({
+  goalId,
+  steps,
+  reachable,
+  onClear,
+}: {
+  goalId: number;
+  steps: number;
+  reachable: boolean;
+  onClear: () => void;
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm"
+      data-testid="goal-banner"
+    >
+      <span>
+        {t("goal.path_to")} ·{" "}
+        {reachable ? t("goal.already_open") : t("goal.steps", { count: Math.max(0, steps - 1) })}
+      </span>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" asChild>
+          <Link to={`/topic/${goalId}`}>{t("learning.open_topic")}</Link>
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onClear}>
+          {t("goal.clear")}
+        </Button>
       </div>
     </div>
   );
 };
 
-export default LearningPath;
+const Shell = ({ children }: { children: React.ReactNode }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container mx-auto space-y-4 px-4 py-6">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">{t("learning.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("learning.subtitle")}</p>
+        </header>
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default LearningPathPage;

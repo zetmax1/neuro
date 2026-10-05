@@ -1,261 +1,222 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, ArrowRight, GraduationCap, Lock, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+
+import { getAssessmentTests, type AssessmentTest } from "@/api/assessment.api";
+import type { TopicStatus } from "@/api/types";
+import StatusBadge from "@/components/common/StatusBadge";
+import StatusLegend from "@/components/common/StatusLegend";
 import Header from "@/components/layout/Header";
-import { getAssessmentTests, AssessmentTest } from "@/api/assessment.api";
 import { Button } from "@/components/ui/button";
-import { 
-  Search, 
-  ArrowRight, 
-  Lock,
-  Loader2,
-  RefreshCw,
-  Filter,
-  CheckCircle2
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatProbability } from "@/lib/format";
+import { statusStyle } from "@/lib/status";
+import { cn } from "@/lib/utils";
 
-type FilterTab = "all" | "easy" | "medium" | "hard";
+/**
+ * Practice and tests (addendum 2.3).
+ *
+ * The two modes are separated and labelled for what they are: adaptive
+ * practice is where the student model runs, and a test is a stratified exam
+ * whose result is a separate grade (D7).
+ *
+ * A closed topic's card is inert — it shows the lock and what is missing, and
+ * the backend answers 403 anyway (TY1-TY4). The constant "Medium" badge is
+ * gone: difficulty, when shown, comes from the questions' mean b. The
+ * Easy/Medium/Hard filter went with it; filtering is by status, which is what
+ * a learner actually chooses on.
+ */
 
-const Assessment: React.FC = () => {
-  const navigate = useNavigate();
-  const [tests, setTests] = useState<AssessmentTest[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+const STATUS_FILTERS: readonly (TopicStatus | "all")[] = ["all", "open", "in_progress", "review", "mastered", "closed"];
 
-  const fetchTests = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getAssessmentTests();
-      setTests(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.message || "Failed to load assessment tests.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const Assessment = () => {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<TopicStatus | "all">("all");
 
-  useEffect(() => {
-    fetchTests();
-  }, []);
+  const tests = useQuery({ queryKey: ["assessments", "tests"], queryFn: getAssessmentTests });
 
-  const getDifficultyBadge = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case "easy":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
-      case "medium":
-        return "bg-amber-50 text-amber-700 border-amber-200/80";
-      case "hard":
-        return "bg-rose-50 text-rose-700 border-rose-200/80";
-      default:
-        return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
-    }
-  };
-
-  // Filter tests based on search and selected difficulty tab
-  const filteredTests = tests.filter((test) => {
-    const matchesSearch = 
-      test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      test.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (test.parent_name && test.parent_name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    if (!matchesSearch) return false;
-
-    if (activeTab === "easy") return test.difficulty_level.toLowerCase() === "easy";
-    if (activeTab === "medium") return test.difficulty_level.toLowerCase() === "medium";
-    if (activeTab === "hard") return test.difficulty_level.toLowerCase() === "hard";
-
-    return true;
-  });
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return (tests.data ?? []).filter((test) => {
+      const matchesQuery =
+        !query ||
+        test.name.toLowerCase().includes(query) ||
+        (test.description ?? "").toLowerCase().includes(query);
+      const matchesStatus = status === "all" || test.status === status;
+      return matchesQuery && matchesStatus;
+    });
+  }, [tests.data, search, status]);
 
   return (
-    <div className="min-h-screen bg-slate-50/60 font-sans flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
+      <main className="container mx-auto space-y-6 px-4 py-8">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">{t("assessment.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("assessment.subtitle")}</p>
+        </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        
-        {/* Page Header (Clean Light Card) */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 mb-8 shadow-2xs">
-          <div className="max-w-3xl space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Assessment Center
-            </h1>
-            <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-              Evaluate your topic mastery with adaptive test assessments. Questions dynamically match your knowledge level for accurate skill evaluation.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 pt-3 text-xs font-medium text-slate-500 border-t border-slate-100">
-              <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-0.5 rounded-md">{tests.length} Available Modules</span>
-              <span>•</span>
-              <span>Stratified Questions</span>
-              <span>•</span>
-              <span>Continuous Mastery Tracking</span>
-            </div>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ModeCard
+            title={t("assessment.practice_mode")}
+            description={t("assessment.practice_desc")}
+            icon={<ArrowRight className="h-5 w-5" aria-hidden />}
+          />
+          <ModeCard
+            title={t("assessment.test_mode")}
+            description={t("assessment.test_desc")}
+            icon={<GraduationCap className="h-5 w-5" aria-hidden />}
+          />
         </div>
 
-        {/* Search & Filter Controls */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search tests by title or topic..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
-              />
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-              {[
-                { id: "all", label: "All Tests" },
-                { id: "easy", label: "Easy" },
-                { id: "medium", label: "Medium" },
-                { id: "hard", label: "Hard" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as FilterTab)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={t("common.search")}
+              className="pl-9"
+              aria-label={t("common.search")}
+            />
           </div>
-        </div>
-
-        {/* Content Directory */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200 shadow-2xs">
-            <Loader2 className="w-8 h-8 text-slate-700 animate-spin mb-3" />
-            <p className="text-slate-500 font-medium text-xs">Loading assessment modules...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-white rounded-3xl border border-rose-200 p-8 text-center shadow-2xs">
-            <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3">
-              <RefreshCw className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">Failed to load tests</h3>
-            <p className="text-slate-500 text-xs mb-4">{error}</p>
-            <Button onClick={fetchTests} variant="outline" className="gap-2 text-xs">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Try Again
-            </Button>
-          </div>
-        ) : filteredTests.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-2xs">
-            <Filter className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-900 mb-1">No assessment tests found</h3>
-            <p className="text-slate-500 text-xs max-w-sm mx-auto mb-4">
-              Try adjusting your search term or filter selection.
-            </p>
-            <Button onClick={() => { setSearchQuery(""); setActiveTab("all"); }} variant="outline" className="text-xs">
-              Clear Filters
-            </Button>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTests.map((test) => (
-              <div
-                key={test.id}
-                className="group bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 flex flex-col justify-between overflow-hidden"
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("assessment.filter_status")}>
+            {STATUS_FILTERS.map((option) => (
+              <Button
+                key={option}
+                size="sm"
+                variant={status === option ? "default" : "outline"}
+                onClick={() => setStatus(option)}
+                data-testid={`filter-${option}`}
               >
-                <div className="p-6 space-y-4">
-                  {/* Top Meta */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
-                      {test.parent_name || "Curriculum"}
-                    </span>
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md border ${getDifficultyBadge(test.difficulty_level)}`}>
-                      {test.difficulty_level}
-                    </span>
-                  </div>
-
-                  {/* Title & Description */}
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mb-1">
-                      {test.name}
-                    </h2>
-                    <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed">
-                      {test.description || "Adaptive test assessment covering topic material."}
-                    </p>
-                  </div>
-
-                  {/* Info Pill Badges */}
-                  <div className="flex items-center gap-3 text-xs text-slate-600 pt-2 border-t border-slate-100 font-medium">
-                    <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                      <strong>{test.question_count}</strong> Questions
-                    </span>
-                    <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                      <strong>~{test.estimated_minutes}</strong> mins
-                    </span>
-                  </div>
-
-                  {/* Mastery Bar */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-600">Mastery Score</span>
-                      <span className="font-bold text-slate-900">{test.mastery_percentage}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 rounded-full ${
-                          test.mastery_percentage >= 70
-                            ? "bg-emerald-500"
-                            : test.mastery_percentage > 0
-                            ? "bg-indigo-600"
-                            : "bg-slate-300"
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(5, test.mastery_percentage))}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Action */}
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                  {test.mastery_percentage >= 70 ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Passed
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-slate-500">
-                      {test.question_count > 0 ? "Ready to start" : "No questions"}
-                    </span>
-                  )}
-
-                  {test.is_unlocked ? (
-                    <Button
-                      onClick={() => navigate(`/topic/${test.id}/assessment`)}
-                      size="sm"
-                      className="gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-2xs"
-                    >
-                      {test.mastery_percentage > 0 ? "Retake" : "Start Test"}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  ) : (
-                    <Button disabled size="sm" variant="outline" className="gap-1.5 text-xs rounded-xl">
-                      <Lock className="w-3.5 h-3.5" />
-                      Locked
-                    </Button>
-                  )}
-                </div>
-              </div>
+                {option === "all" ? t("common.all") : t(`status.${option}`)}
+              </Button>
             ))}
           </div>
+        </div>
+
+        {tests.isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-44" />
+            ))}
+          </div>
+        ) : tests.isError ? (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+              <AlertCircle className="h-5 w-5 text-destructive" aria-hidden />
+              <p className="text-sm text-muted-foreground">{t("common.error")}</p>
+              <Button variant="outline" size="sm" onClick={() => void tests.refetch()}>
+                {t("common.retry")}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : visible.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">{t("common.empty")}</p>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((test) => (
+                <TestCard key={test.id} test={test} />
+              ))}
+            </div>
+            <StatusLegend />
+          </>
         )}
       </main>
     </div>
+  );
+};
+
+const ModeCard = ({
+  title,
+  description,
+  icon,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) => (
+  <Card>
+    <CardContent className="flex gap-3 py-5">
+      <span className="mt-0.5 text-muted-foreground">{icon}</span>
+      <div className="space-y-1">
+        <p className="font-medium">{title}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const TestCard = ({ test }: { test: AssessmentTest }) => {
+  const { t } = useTranslation();
+  const style = statusStyle(test.status);
+  const closed = style.locked;
+
+  return (
+    <Card
+      className={cn("flex flex-col", closed && "opacity-75")}
+      data-testid={`test-card-${test.status}`}
+      aria-disabled={closed}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base leading-snug">{test.name}</CardTitle>
+          <StatusBadge status={test.status} />
+        </div>
+        {test.parent_name && <p className="text-xs text-muted-foreground">{test.parent_name}</p>}
+      </CardHeader>
+
+      <CardContent className="flex flex-1 flex-col justify-between gap-4">
+        <div className="space-y-2 text-sm">
+          <p className="line-clamp-2 text-muted-foreground">{test.description}</p>
+          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex gap-1">
+              <dt>{t("metric.p_mastery")}</dt>
+              <dd className="font-medium tabular-nums text-foreground">
+                {formatProbability(test.p_mastery)}
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt>{t("metric.accuracy")}</dt>
+              <dd className="font-medium tabular-nums text-foreground">
+                {formatProbability(test.accuracy)}
+              </dd>
+            </div>
+            <div>{t("assessment.questions", { count: test.question_count })}</div>
+            <div>{t("assessment.minutes", { count: test.estimated_minutes })}</div>
+          </dl>
+          {closed && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="h-3 w-3" aria-hidden />
+              {t("reason.blocked", { count: test.missing_count })}
+            </p>
+          )}
+        </div>
+
+        {closed ? (
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/topic/${test.id}`}>{t("learning.open_topic")}</Link>
+          </Button>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" asChild disabled={test.question_count === 0}>
+              <Link to={`/topic/${test.id}/assessment?mode=practice`}>
+                {t("assessment.start_practice")}
+              </Link>
+            </Button>
+            <Button size="sm" variant="outline" asChild disabled={test.question_count === 0}>
+              <Link to={`/topic/${test.id}/assessment?mode=test`}>{t("assessment.start_test")}</Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

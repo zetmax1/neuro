@@ -69,11 +69,12 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, editingQuestion, o
   // Reset form when editingQuestion changes
   useEffect(() => {
     if (editingQuestion) {
-      const choices = editingQuestion.choices.map((c, idx) => ({
-        id: c.id,
-        text: c.text,
-        is_correct: 'is_correct' in c ? (c as any).is_correct : idx === 0
-      }));
+      const choices: { id?: number; text: string; is_correct: boolean }[] =
+        editingQuestion.choices.map((c, idx) => ({
+          id: c.id,
+          text: c.text,
+          is_correct: "is_correct" in c ? Boolean(c.is_correct) : idx === 0,
+        }));
 
       // Ensure 4 choices
       while (choices.length < 4) {
@@ -118,7 +119,11 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, editingQuestion, o
         text: values.text,
         explanation: values.explanation,
         difficulty: values.difficulty,
-        choices: values.choices,
+        choices: values.choices.map((choice) => ({
+          ...(choice.id === undefined ? {} : { id: choice.id }),
+          text: choice.text ?? "",
+          is_correct: Boolean(choice.is_correct),
+        })),
       };
 
       if (isEditing && editingQuestion) {
@@ -142,7 +147,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ topicId, editingQuestion, o
       });
 
       if (onSuccess) onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, `Failed to ${isEditing ? 'update' : 'create'} question`));
     } finally {
       setLoading(false);

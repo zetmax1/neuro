@@ -1,143 +1,102 @@
-// import Header from "@/components/layout/Header";
-// import HeroSection from "@/components/landing/HeroSection";
-// import FeaturesSection from "@/components/landing/FeaturesSection";
-// import KnowledgeFlowSection from "@/components/landing/KnowledgeFlowSection";
-// import { Button } from "@/components/ui/button";
-// import { Link } from "react-router-dom";
-// import { ArrowRight, Brain } from "lucide-react";
-
-// const Landing = () => {
-//   return (
-//     <div className="min-h-screen bg-background">
-//       <Header />
-//       <main>
-//         <HeroSection />
-//         <FeaturesSection />
-//         <KnowledgeFlowSection />
-        
-//         {/* CTA Section */}
-//         <section className="py-24 bg-background">
-//           <div className="container mx-auto px-4">
-//             <div className="max-w-3xl mx-auto text-center">
-//               <div className="w-20 h-20 rounded-3xl gradient-primary flex items-center justify-center mx-auto mb-8 shadow-glow">
-//                 <Brain className="w-10 h-10 text-white" />
-//               </div>
-//               <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-//                 Ready to transform your learning?
-//               </h2>
-//               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-//                 Join thousands of learners using knowledge-based intelligence to master new skills faster.
-//               </p>
-//               <Link to="/auth">
-//                 <Button variant="hero" size="xl" className="group">
-//                   Get Started Now
-//                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-//                 </Button>
-//               </Link>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* Footer */}
-//         <footer className="py-8 border-t border-border">
-//           <div className="container mx-auto px-4">
-//             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-//               <div className="flex items-center gap-2">
-//                 <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-//                   <Brain className="w-4 h-4 text-white" />
-//                 </div>
-//                 <span className="font-semibold text-foreground">NeuroLearn</span>
-//               </div>
-//               <p className="text-sm text-muted-foreground">
-//                 © 2024 NeuroLearn. Intelligent Learning for Everyone.
-//               </p>
-//             </div>
-//           </div>
-//         </footer>
-//       </main>
-//     </div>
-//   );
-// };
-
-// export default Landing;
-
-
+import { ArrowRight, Brain, GitBranch, Route } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 import Header from "@/components/layout/Header";
-import HeroSection from "@/components/landing/HeroSection";
-import FeaturesSection from "@/components/landing/FeaturesSection";
-import KnowledgeFlowSection from "@/components/landing/KnowledgeFlowSection";
+import StatusLegend from "@/components/common/StatusLegend";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowRight, Brain } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStore } from "@/store/authStore";
+
+/**
+ * The landing page.
+ *
+ * Its copy now describes what the system does — a knowledge graph, a student
+ * model, and a next step with a reason — instead of the template's claims.
+ * "Dynamic quizzes adjust difficulty in real-time" went with the others
+ * (D29), and so did the links to /features, /pricing, /about and /privacy,
+ * which were pages that do not exist (D23).
+ *
+ * three.js is ~850 kB and the background it draws is decoration, so it loads
+ * after the text (stage 7 bundle work).
+ */
+const Hero3DBackground = lazy(() =>
+  import("@/components/landing/Hero3DBackground").then((module) => ({
+    default: module.Hero3DBackground,
+  })),
+);
+
+const FEATURES = [
+  { icon: GitBranch, titleKey: "landing.feature_graph", textKey: "landing.feature_graph_text" },
+  { icon: Brain, titleKey: "landing.feature_model", textKey: "landing.feature_model_text" },
+  { icon: Route, titleKey: "landing.feature_path", textKey: "landing.feature_path_text" },
+] as const;
 
 const Landing = () => {
-  return (
-    <div className="min-h-screen bg-background font-sans selection:bg-primary/20">
-      <Header />
-      <main>
-        <HeroSection />
-        <FeaturesSection />
-        <KnowledgeFlowSection />
-        
-        {/* CTA Section - Solid block to anchor the page */}
-        <section className="py-24 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center flex flex-col items-center">
-              <h2 className="text-3xl sm:text-5xl font-bold tracking-tight mb-6">
-                Ready to transform your learning?
-              </h2>
-              <p className="text-lg text-primary-foreground/80 mb-10 max-w-xl leading-relaxed">
-                Join thousands of learners using structured knowledge to master new skills faster and retain them longer.
-              </p>
-              <Link to="/auth">
-                <Button size="xl" variant="secondary" className="group text-primary font-semibold rounded-full px-8">
-                  Start learning for free
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <p className="mt-6 text-sm text-primary-foreground/60">
-                No credit card required. Cancel anytime.
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
+  const { t } = useTranslation();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-      {/* Structured SaaS Footer */}
-      <footer className="py-12 bg-card border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Brain className="w-6 h-6 text-primary" />
-                <span className="font-bold text-lg tracking-tight text-foreground">NeuroLearn</span>
-              </div>
-              <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
-                Making advanced learning accessible through structured knowledge and personalized pathways.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Platform</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/features" className="hover:text-primary transition-colors">Features</Link></li>
-                <li><Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
-                <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} NeuroLearn. All rights reserved.
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <section className="relative overflow-hidden pb-24 pt-20">
+        <Suspense fallback={null}>
+          <Hero3DBackground />
+        </Suspense>
+
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="max-w-3xl space-y-6">
+            <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+              {t("landing.hero_title")}
+            </h1>
+            <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              {t("landing.hero_text")}
             </p>
+            <div className="flex flex-wrap gap-3">
+              <Button size="lg" asChild className="rounded-full px-8">
+                <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                  {t(isAuthenticated ? "nav.dashboard" : "landing.cta")}
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+                </Link>
+              </Button>
+              {isAuthenticated && (
+                <Button size="lg" variant="outline" asChild className="rounded-full px-8">
+                  <Link to="/learning-path">{t("learning.title")}</Link>
+                </Button>
+              )}
+            </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-muted/20 py-16">
+        <div className="container mx-auto space-y-8 px-4">
+          <div className="grid gap-6 md:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, titleKey, textKey }) => (
+              <Card key={titleKey}>
+                <CardContent className="space-y-3 py-6">
+                  <Icon className="h-6 w-6 text-primary" aria-hidden />
+                  <h2 className="text-lg font-semibold">{t(titleKey)}</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{t(textKey)}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* The same five statuses the learner will meet on every page. */}
+          <StatusLegend className="justify-center" />
+        </div>
+      </section>
+
+      <footer className="border-t border-border py-8">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3 px-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2 font-semibold text-foreground">
+            <Brain className="h-5 w-5 text-primary" aria-hidden />
+            {t("app.name")}
+          </span>
+          <span>{t("app.tagline")}</span>
         </div>
       </footer>
     </div>

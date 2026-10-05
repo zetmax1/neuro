@@ -1,12 +1,23 @@
 import apiClient from './client';
+import type { LearnerState, NodeKind, TopicStatus } from './types';
 
-export interface TopicNode {
-  id: string | number;
+/** One node of the learning-path tree, with this learner's state (3.4). */
+export interface TopicNode extends LearnerState {
+  id: number;
   name: string;
-  slug?: string;
-  parent_id: string | number | null;
-  mastery_percentage: number;
-  is_unlocked: boolean;
+  slug: string;
+  description?: string;
+  parent_id: number | null;
+  kind: NodeKind;
+  tree_depth: number;
+  pos: number | null;
+  lev: number | null;
+  position: number;
+  pass_mark_percentage: number;
+  test_question_count: number;
+  attempts: number;
+  total_duration_minutes: number;
+  children: TopicNode[];
 }
 
 export interface GraphNode {
@@ -23,8 +34,15 @@ export interface GraphNode {
     depth?: number;
     /** Algorithm 2.2 level; topics only. */
     lev?: number | null;
-    is_unlocked: boolean;
-    mastery_pct: number;
+    /**
+     * The learner's state (3.4). Sections and courses hold none (D22), so
+     * they report the defaults: closed with P(L) = 0.
+     */
+    p_mastery: number;
+    accuracy: number;
+    status: TopicStatus;
+    mastered: boolean;
+    missing_count: number;
   };
 }
 
@@ -77,9 +95,9 @@ export interface StudentTopicDetail {
   name: string;
   slug: string;
   parent: number | null;
+  kind: NodeKind;
   description: string;
   position: number;
-  is_unlocked: boolean;
   pass_mark_percentage: number;
   test_question_count: number;
   total_duration_minutes: number;

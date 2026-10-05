@@ -27,12 +27,16 @@ export interface TopicPayload {
   kind?: TopicKind;
   description?: string;
   position?: number;
-  is_unlocked?: boolean;
+  /** Test settings the node editor can change (stage 2 EDITABLE_FIELDS). */
+  pass_mark_percentage?: number;
+  test_question_count?: number;
 }
 
 export interface TopicResponse extends TopicPayload {
   id: number;
   kind: TopicKind;
+  pass_mark_percentage: number;
+  test_question_count: number;
   /** Archived topics are hidden from lists unless ?include_archived=true (D11). */
   is_archived?: boolean;
   created_at: string;
@@ -212,4 +216,79 @@ export const deleteResource = async (id: number): Promise<void> => {
   await apiClient.delete(`/api/curriculum/instructor/resources/${id}/`);
 };
 
+// ---------------------------------------------------------------------------
+// Prerequisites (E_P) — the centre of the thesis, and absent from the UI
+// before stage 7.
+// ---------------------------------------------------------------------------
 
+/** One relation the instructor entered: `prerequisite` before `topic`. */
+export interface Prerequisite {
+  id: number;
+  prerequisite: number;
+  prerequisite_name: string;
+  topic: number;
+  topic_name: string;
+  weight: number;
+  created_at: string;
+}
+
+/** An edge of the inherited graph G_L; read-only in the editor. */
+export interface LeafEdge {
+  source: number;
+  target: number;
+  weight: number;
+  /** Produced only by a section- or course-level relation. */
+  inherited: boolean;
+  /** Ids of the E_P relations that produce it. */
+  via: number[];
+}
+
+export interface KbWarnings {
+  kb_version: number;
+  redundant_edges: { source: number; target: number; via: number[] }[];
+  kappa: number;
+  order_conflicts: { source: number; target: number; via: number[] }[];
+}
+
+export const getPrerequisites = async (courseId?: number): Promise<Prerequisite[]> => {
+  const response = await apiClient.get('/api/curriculum/instructor/prerequisites/', {
+    params: courseId ? { course: courseId } : {},
+  });
+  return response.data;
+};
+
+/** G_L, so the editor can draw inherited edges as dashed and read-only. */
+export const getLeafEdges = async (): Promise<LeafEdge[]> => {
+  const response = await apiClient.get('/api/curriculum/instructor/prerequisites/', {
+    params: { expand: 'leaf' },
+  });
+  return response.data;
+};
+
+/**
+ * Adds (x, y) through Algorithm 2.1. A rejection is a 400 whose body carries
+ * `reason` and, for a cycle, the `chain` the editor highlights in red.
+ */
+export const createPrerequisite = async (payload: {
+  prerequisite: number;
+  topic: number;
+  weight?: number;
+}): Promise<Prerequisite> => {
+  const response = await apiClient.post('/api/curriculum/instructor/prerequisites/', payload);
+  return response.data;
+};
+
+export const updatePrerequisiteWeight = async (id: number, weight: number): Promise<Prerequisite> => {
+  const response = await apiClient.patch(`/api/curriculum/instructor/prerequisites/${id}/`, { weight });
+  return response.data;
+};
+
+export const deletePrerequisite = async (id: number): Promise<void> => {
+  await apiClient.delete(`/api/curriculum/instructor/prerequisites/${id}/`);
+};
+
+/** Redundant edges and κ — reported, never auto-fixed (GR3). */
+export const getKbWarnings = async (): Promise<KbWarnings> => {
+  const response = await apiClient.get('/api/curriculum/instructor/kb/warnings/');
+  return response.data;
+};

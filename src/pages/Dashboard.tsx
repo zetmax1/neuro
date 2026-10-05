@@ -1,468 +1,212 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { 
-  ArrowRight, 
-  BookOpen, 
-  Code, 
-  Database, 
-  BrainCircuit, 
-  TrendingUp,
-  Calendar,
-  Target,
-  Plus,
-  Play,
-  AlertCircle
-} from "lucide-react";
+import { AlertCircle, BookOpenCheck, DoorOpen, RefreshCw, Target } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
-import Header from "@/components/layout/Header";
-import ProgressCard from "@/components/dashboard/ProgressCard";
-import RecommendationCard from "@/components/dashboard/RecommendationCard";
-import SubjectMasteryCard from "@/components/dashboard/SubjectMasteryCard";
+import type { TopicNode } from "@/api/curriculum.api";
+import MasteryRatio from "@/components/common/MasteryRatio";
+import StatusLegend from "@/components/common/StatusLegend";
+import { NextStepCard, TrajectoryGroups } from "@/components/common/TrajectoryList";
 import MasteryHeatmap from "@/components/dashboard/MasteryHeatmap";
+import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { getLearningPathTree } from "@/api/curriculum.api";
-import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardOverview, useLearningPathTree, useTrajectory } from "@/hooks/useLearningData";
+import { flattenTopics } from "@/lib/topics";
 import { useAuthStore } from "@/store/authStore";
-import { cn } from "@/lib/utils";
+import type { TopicStatus } from "@/api/types";
 
-interface FlatTopic {
-  id: string | number;
-  name: string;
-  slug: string;
-  parent_id: string | number | null;
-  mastery_percentage: number;
-  mastery_level: number;
-  mastery_level_display: string;
-  is_unlocked: boolean;
-}
+/**
+ * The dashboard (addendum 2.1).
+ *
+ * The four KPI cards are the ones the thesis can defend: mastered, needing
+ * review, open, and answers in the last seven days. Streak and "weekly goal"
+ * are gone — they have nothing to do with the model — and so is the average
+ * of P(L) values, which is not a meaningful quantity.
+ *
+ * "What next" comes from the trajectory service (Algorithm 2.5), not from four
+ * heuristics computed here. A course root is never recommended: the service
+ * returns topics only.
+ */
 
-const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardData();
-  const user = useAuthStore((state) => state.user);
+const Dashboard = () => {
+  const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const overview = useDashboardOverview();
+  const trajectory = useTrajectory();
+  const tree = useLearningPathTree();
 
-  const [treeData, setTreeData] = useState<any[] | null>(null);
-  const [treeLoading, setTreeLoading] = useState<boolean>(true);
-  const [treeError, setTreeError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchTree = async () => {
-      setTreeLoading(true);
-      try {
-        const result = await getLearningPathTree();
-        if (isMounted) {
-          setTreeData(result);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setTreeError(err instanceof Error ? err : new Error("Failed to fetch curriculum tree"));
-        }
-      } finally {
-        if (isMounted) {
-          setTreeLoading(false);
-        }
-      }
-    };
-    fetchTree();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const today = new Date().toLocaleDateString("en-US", { 
-    weekday: "long", month: "long", day: "numeric" 
-  });
-
-  if (dashboardLoading || treeLoading) {
-    return (
-      <div className="min-h-screen bg-background font-sans">
-        <Header />
-        <DashboardSkeleton />
-      </div>
-    );
-  }
-
-  if (dashboardError || treeError || !dashboardData) {
-    return (
-      <div className="min-h-screen bg-background font-sans flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to load dashboard</h2>
-            <p className="text-gray-500 mb-6 text-sm">
-              {dashboardError?.message || treeError?.message || "An unknown error occurred."}
-            </p>
-            <Button onClick={() => window.location.reload()} className="w-full">
-              Try Again
-            </Button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // 1. Process tree for subjects map
-  const getSubtreeStats = (node: any) => {
-    let totalTopics = 0;
-    let activeTopics = 0;
-    let masterySum = 0;
-    let masteryCount = 0;
-
-    const recurse = (n: any) => {
-      totalTopics++;
-      if (n.is_unlocked) {
-        activeTopics++;
-      }
-      
-      const isLeaf = !n.children || n.children.length === 0;
-      if (isLeaf) {
-        masterySum += n.mastery_percentage || 0;
-        masteryCount++;
-      } else {
-        if (n.mastery_percentage > 0) {
-          masterySum += n.mastery_percentage;
-          masteryCount++;
-        }
-      }
-
-      if (n.children && Array.isArray(n.children)) {
-        n.children.forEach(recurse);
-      }
-    };
-
-    recurse(node);
-
-    return {
-      total: totalTopics,
-      active: activeTopics,
-      averageMastery: masteryCount > 0 ? Math.round(masterySum / masteryCount) : (node.mastery_percentage || 0)
-    };
-  };
-
-  let subjectsData: any[] = [];
-  if (treeData && treeData.length > 0) {
-    if (treeData.length === 1 && treeData[0].children && treeData[0].children.length > 0) {
-      subjectsData = treeData[0].children;
-    } else {
-      subjectsData = treeData;
-    }
-  }
-
-  const getSubjectIcon = (name: string, isHighestMastery: boolean) => {
-    const iconClass = isHighestMastery ? "w-5 h-5 text-primary" : "w-5 h-5 text-foreground";
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes("data structure")) {
-      return <Database className={iconClass} />;
-    } else if (lowerName.includes("algorithm")) {
-      return <Code className={iconClass} />;
-    } else if (lowerName.includes("machine learning")) {
-      return <BrainCircuit className={iconClass} />;
-    } else {
-      return <BookOpen className={iconClass} />;
-    }
-  };
-
-  const mappedSubjects = subjectsData.map((node) => {
-    const stats = getSubtreeStats(node);
-    return {
-      id: node.id,
-      subject: node.name,
-      mastery: stats.averageMastery,
-      topics: stats.total,
-      completedTopics: stats.active,
-    };
-  });
-
-  const maxMastery = mappedSubjects.length > 0 
-    ? Math.max(...mappedSubjects.map(s => s.mastery)) 
-    : -1;
-
-  const finalSubjects = mappedSubjects.map((s) => {
-    const isHighest = s.mastery === maxMastery && maxMastery > 0;
-    return {
-      ...s,
-      icon: getSubjectIcon(s.subject, isHighest),
-    };
-  });
-
-  // 2. Heatmap Concepts mapping directly from backend
-  const heatmapConcepts = dashboardData.heatmap_data.map((item) => {
-    // Map float mastery probability (0.0-1.0) to level 0 to 4
-    const mastery = item.mastery_percentage || 0;
-    let level = 0;
-    if (mastery >= 0.8) level = 4;
-    else if (mastery >= 0.6) level = 3;
-    else if (mastery >= 0.4) level = 2;
-    else if (mastery >= 0.2) level = 1;
-
-    let attempts = 0;
-    let mistakes = 0;
-    if (level === 4) {
-      attempts = 15 + (Number(item.topic_id) % 5);
-      mistakes = 1 + (Number(item.topic_id) % 3);
-    } else if (level === 3) {
-      attempts = 10 + (Number(item.topic_id) % 5);
-      mistakes = 3 + (Number(item.topic_id) % 3);
-    } else if (level === 2) {
-      attempts = 6 + (Number(item.topic_id) % 3);
-      mistakes = 4 + (Number(item.topic_id) % 2);
-    } else if (level === 1) {
-      attempts = 4 + (Number(item.topic_id) % 2);
-      mistakes = 3 + (Number(item.topic_id) % 2);
-    }
-
-    const hasActivity = dashboardData.recent_activity?.some(
-      act => act.description.toLowerCase().includes(item.topic_name.toLowerCase())
-    );
-    const lastStudied = hasActivity 
-      ? "Recently" 
-      : (level > 0 ? `${(Number(item.topic_id) % 5) + 1} days ago` : "Never");
-
-    return {
-      concept: item.topic_name,
-      level,
-      attempts,
-      mistakes,
-      lastStudied,
-    };
-  });
-
-  // Recommendations mapping from backend
-  const recs = dashboardData.recommendations;
-  const recommendedNextTopic = recs.recommended_next;
-  const needsRevisionTopic = recs.needs_revision;
-  const readyToAdvanceTopic = recs.ready_to_advance;
-  const upcomingTopic = recs.coming_soon;
-
-  const formatActivityTime = (timestampStr: string) => {
-    const date = new Date(timestampStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    return `${diffDays} days ago`;
-  };
+  const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
 
   return (
-    <div className="min-h-screen bg-background font-sans">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        
-        {/* Structured App Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 pb-6 border-b border-border/50">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Welcome back{user?.first_name ? `, ${user.first_name}` : ""}. Here's your personalized learning overview.
-            </p>
+      <main className="container mx-auto space-y-8 px-4 py-8">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {name ? t("dashboard.greeting", { name }) : t("dashboard.greeting_anon")}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t("app.tagline")}</p>
+        </header>
+
+        <KpiRow />
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t("trajectory.title")}</h2>
+          {trajectory.isLoading ? (
+            <Skeleton className="h-28 w-full" />
+          ) : trajectory.isError ? (
+            <LoadError onRetry={() => void trajectory.refetch()} />
+          ) : (
+            <>
+              <NextStepCard item={trajectory.data?.next ?? null} />
+              {trajectory.data && <TrajectoryGroups groups={trajectory.data.groups} />}
+            </>
+          )}
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold">{t("dashboard.knowledge_map")}</h2>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/learning-path">{t("learning.title")}</Link>
+            </Button>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="hidden sm:flex items-center text-sm font-medium text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-md border border-border/50">
-              <Calendar className="w-4 h-4 mr-2 opacity-70" />
-              {today}
-            </div>
-            {recommendedNextTopic && (
-              <Link to={`/topic/${recommendedNextTopic.id}`}>
-                <Button variant="outline" size="sm" className="gap-1.5 h-9 text-sm">
-                  <Play className="w-3.5 h-3.5" />
-                  study session
-                </Button>
-              </Link>
-            )}
-            <Link to="/mistakes">
-              <Button variant="outline" size="sm" className="gap-1.5 h-9 text-sm">
-                <AlertCircle className="w-3.5 h-3.5" />
-                review mistakes
-              </Button>
-            </Link>
-            <Link to="/learning-path">
-              <Button size="lg" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-medium">
-                Continue Learning
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <ProgressCard
-            title="Overall Progress"
-            value={dashboardData.total_topics_mastered}
-            maxValue={dashboardData.total_topics || 1}
-            variant="highlight"
-            subtitle="Across all subjects"
-          />
-          <ProgressCard
-            title="Weekly Goal"
-            value={dashboardData.weekly_goal_progress}
-            maxValue={100}
-            subtitle="Topics completed"
-          />
-          <ProgressCard
-            title="Current Streak"
-            value={dashboardData.current_streak}
-            maxValue={7}
-            subtitle="Days in a row"
-            showPercentage={false}
-            unit="days"
-          />
-          <ProgressCard
-            title="Assessments"
-            value={dashboardData.overall_accuracy}
-            maxValue={100}
-            subtitle="Average score"
-          />
-        </div>
-
-        {/* Main 3-Column Layout */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-10">
-          
-          {/* Left Column - Subject Mastery */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">Your knowledge map</h2>
-              <Link to="/learning-path">
-                <Button variant="link" size="sm" className="text-primary h-auto p-0 font-medium">
-                  View full path
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              {finalSubjects.map((subject) => (
-                <SubjectMasteryCard key={subject.id} {...subject} />
+          {tree.isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-28" />
               ))}
-              
-              <Link 
-                to="/courses" 
-                className="group py-4 border-t border-dashed border-border/40 hover:border-foreground/30 transition-all duration-200 flex flex-col items-center justify-center text-center h-full min-h-[120px] -mx-4 px-4 rounded-xl hover:bg-muted/5"
-              >
-                <div className="w-10 h-10 rounded-full border border-border/50 flex items-center justify-center mb-3 group-hover:border-primary group-hover:text-primary transition-colors duration-200">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <span className="font-medium text-foreground text-sm">Explore more subjects</span>
-                <span className="text-xs text-muted-foreground mt-1">Browse the catalog</span>
-              </Link>
             </div>
+          ) : tree.isError ? (
+            <LoadError onRetry={() => void tree.refetch()} />
+          ) : (
+            <CourseCards courses={tree.data ?? []} />
+          )}
+        </section>
 
-            {/* Mastery Heatmap Integration */}
-            <div className="mt-10">
-              <MasteryHeatmap concepts={heatmapConcepts} />
-            </div>
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold">{t("dashboard.heatmap")}</h2>
+            <p className="text-sm text-muted-foreground">{t("dashboard.heatmap_hint")}</p>
           </div>
-
-          {/* Right Column - Recommendations */}
-          <div className="space-y-6 ml-6">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">What's next for you</h2>
-            
-            <div className="space-y-3">
-              {recommendedNextTopic && (
-                <RecommendationCard
-                  type="next"
-                  title={recommendedNextTopic.name}
-                  description={`Build on your current topic knowledge to master ${recommendedNextTopic.name}.`}
-                  action="Start"
-                  onClick={() => navigate(`/topic/${recommendedNextTopic.id}`)}
-                />
-              )}
-              
-              {needsRevisionTopic && (
-                <RecommendationCard
-                  type="revise"
-                  title={needsRevisionTopic.name}
-                  description={
-                    Math.round(needsRevisionTopic.mastery_percentage * 100) > 0
-                      ? `Your mastery is currently at ${Math.round(needsRevisionTopic.mastery_percentage * 100)}%. A quick review will solidify this foundation.`
-                      : `Start reviewing ${needsRevisionTopic.name} to reinforce foundational concepts.`
-                  }
-                  action="Review"
-                  onClick={() => navigate(`/topic/${needsRevisionTopic.id}`)}
-                />
-              )}
-              
-              {readyToAdvanceTopic && (
-                <RecommendationCard
-                  type="ready"
-                  title={readyToAdvanceTopic.name}
-                  description={
-                    Math.round(readyToAdvanceTopic.mastery_percentage * 100) > 0
-                      ? `You've shown strong progress at ${Math.round(readyToAdvanceTopic.mastery_percentage * 100)}%. Ready to tackle advanced concepts!`
-                      : `Topic unlocked! Begin exploring ${readyToAdvanceTopic.name} to build your skills.`
-                  }
-                  action="Begin"
-                  onClick={() => navigate(`/topic/${readyToAdvanceTopic.id}`)}
-                />
-              )}
-              
-              {upcomingTopic && (
-                <RecommendationCard
-                  type="upcoming"
-                  title={upcomingTopic.name}
-                  description="Complete prerequisite topics to unlock this upcoming concept."
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Activity Feed Section */}
-        <div className="mt-16">
-          <div className="pb-4 border-b border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Recent activity</h2>
-              <p className="text-sm text-muted-foreground">Your learning journey over the last 7 days</p>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 text-primary text-xs font-semibold uppercase tracking-wider">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>+12% improvement</span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            {dashboardData.recent_activity && dashboardData.recent_activity.length > 0 ? (
-              dashboardData.recent_activity.map((item, index) => {
-                const day = formatActivityTime(item.timestamp);
-                return (
-                  <div key={index} className="flex items-center gap-4 py-3 border-b border-border/40 last:border-0 hover:bg-muted/10 transition-colors -mx-4 px-4 rounded-xl">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-transparent">
-                      <Target className="w-4 h-4 text-foreground/70" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate pl-1">{item.description}</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-right">
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border",
-                        item.is_correct 
-                          ? "border-success/20 text-success bg-success/5" 
-                          : "border-destructive/20 text-destructive bg-destructive/5"
-                      )}>
-                        {item.is_correct ? "Correct" : "Incorrect"}
-                      </span>
-                      <span className="text-xs text-muted-foreground w-16 text-right hidden sm:inline-block">{day}</span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">No recent activity. Start learning to see progress updates!</p>
-            )}
-          </div>
-        </div>
-        
+          {overview.isLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : overview.isError ? (
+            <LoadError onRetry={() => void overview.refetch()} />
+          ) : (
+            <>
+              <MasteryHeatmap items={overview.data?.heatmap_data ?? []} />
+              <StatusLegend />
+            </>
+          )}
+        </section>
       </main>
     </div>
+  );
+};
+
+/** The four KPI cards of addendum 2.1 — every number from the API (D23). */
+const KpiRow = () => {
+  const { t } = useTranslation();
+  const tree = useLearningPathTree();
+  const summary = useDashboardOverview();
+
+  const topics = flattenTopics(tree.data ?? []).filter((node) => node.kind === "topic");
+  const count = (status: TopicStatus) => topics.filter((node) => node.status === status).length;
+
+  const cards = [
+    {
+      key: "mastered",
+      label: t("dashboard.kpi_mastered"),
+      value: `${count("mastered")} / ${topics.length}`,
+      icon: BookOpenCheck,
+    },
+    { key: "review", label: t("dashboard.kpi_review"), value: count("review"), icon: RefreshCw },
+    { key: "open", label: t("dashboard.kpi_open"), value: count("open"), icon: DoorOpen },
+    {
+      key: "answers",
+      label: t("dashboard.kpi_answers_7d"),
+      value: summary.data?.current_streak !== undefined ? (summary.data?.total_submissions ?? 0) : 0,
+      icon: Target,
+    },
+  ];
+
+  if (tree.isLoading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((card) => (
+          <Skeleton key={card.key} className="h-24" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="kpi-row">
+      {cards.map(({ key, label, value, icon: Icon }) => (
+        <Card key={key}>
+          <CardContent className="flex items-center gap-3 py-5">
+            <Icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-semibold tabular-nums">{value}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+/** One card per course: k / n mastered and the status distribution (D22). */
+const CourseCards = ({ courses }: { courses: TopicNode[] }) => {
+  const { t } = useTranslation();
+  const roots = courses.filter((node) => node.kind === "course");
+
+  if (roots.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("dashboard.no_courses")}</p>;
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {roots.map((course) => {
+        const topics = flattenTopics([course]).filter((node) => node.kind === "topic");
+        return (
+          <Card key={course.id} data-testid="course-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="truncate text-base">
+                <Link to="/learning-path" className="underline-offset-2 hover:underline">
+                  {course.name}
+                </Link>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MasteryRatio
+                mastered={topics.filter((node) => node.mastered).length}
+                total={topics.length}
+                statuses={topics.map((node) => node.status)}
+              />
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+};
+
+const LoadError = ({ onRetry }: { onRetry: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+        <AlertCircle className="h-5 w-5 text-destructive" aria-hidden />
+        <p className="text-sm text-muted-foreground">{t("common.error")}</p>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          {t("common.retry")}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

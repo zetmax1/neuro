@@ -1,135 +1,184 @@
-import { useState, useCallback, useEffect } from 'react';
-import { getNextQuestion, submitAnswer, Question, SubmissionResponse } from '@/api/assessment.api';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+  getNextQuestion,
+  submitAnswer,
+  type Question,
+  type SubmissionResponse,
+} from "@/api/assessment.api";
+import type { MissingPrerequisite, TopicStatus } from "@/api/types";
+import { useInvalidateLearnerState } from "@/hooks/useLearningData";
+import { closedTopicMissing } from "@/lib/kbError";
+
+/**
+ * Adaptive practice (P0-1, addendum 2.9): one question at a time through
+ * `next_question` / `submit_answer`.
+ *
+ * This is where the student model actually runs, so the hook is built around
+ * the learner reading the result rather than the quiz rushing on:
+ *
+ * - after an answer the verdict and `Question.explanation` stay on screen
+ *   until the learner asks for the next question. The previous version
+ *   auto-advanced after 1.5 s, hiding the explanation it had just fetched;
+ * - the new status and any topics the answer opened are reported, so the page
+ *   can show the transition (Algorithm 2.3);
+ * - a `review_repeat` answer is flagged: it was logged but changed no P(L) (D25);
+ * - a closed topic answers 403 with its unmet prerequisites (TY1-TY4), which
+ *   is a state the page renders, not an error.
+ *
+ * No difficulty badge is exposed: in practice the item is chosen by
+ * |b_q - θ_s|, and showing a bucket would misdescribe it.
+ */
+
+export type Verdict = "correct" | "incorrect";
+
+export interface AdaptiveQuizState {
+  question: Question | null;
+  selectedChoiceId: number | null;
+  verdict: Verdict | null;
+  /** The explanation of the question just answered. */
+  explanation: string;
+  /** The learner's state after the last answer. */
+  status: TopicStatus | null;
+  pMastery: number | null;
+  pBefore: number | null;
+  accuracy: number | null;
+  attempts: number;
+  openedTopics: number[];
+  /** The answer repeated a question answered within the review window (D25). */
+  isReviewRepeat: boolean;
+  isComplete: boolean;
+  hasNoQuestions: boolean;
+  /** The topic is closed; these are the prerequisites in the way. */
+  closedMissing: MissingPrerequisite[] | null;
+  isLoading: boolean;
+  isSubmitting: boolean;
+  error: Error | null;
+}
 
 export const useAdaptiveQuiz = (topicId: number | string | undefined) => {
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [selectedChoiceId, setSelectedChoiceId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
-  const [sessionComplete, setSessionComplete] = useState<boolean>(false);
-  const [noQuestions, setNoQuestions] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  // D25: the last answer repeated a question answered within 24 h, so P(L) did not change.
-  const [isReviewRepeat, setIsReviewRepeat] = useState<boolean>(false);
+  const invalidate = useInvalidateLearnerState();
+  const nextRef = useRef<Question | null>(null);
 
-  const fetchNext = useCallback(async () => {
-    if (!topicId) return;
-    setIsLoading(true);
-    setError(null);
+  const [state, setState] = useState<AdaptiveQuizState>({
+    question: null,
+    selectedChoiceId: null,
+    verdict: null,
+    explanation: "",
+    status: null,
+    pMastery: null,
+    pBefore: null,
+    accuracy: null,
+    attempts: 0,
+    openedTopics: [],
+    isReviewRepeat: false,
+    isComplete: false,
+    hasNoQuestions: false,
+    closedMissing: null,
+    isLoading: true,
+    isSubmitting: false,
+    error: null,
+  });
+
+  const patch = useCallback((changes: Partial<AdaptiveQuizState>) => {
+    setState((previous) => ({ ...previous, ...changes }));
+  }, []);
+
+  const load = useCallback(async () => {
+    if (topicId === undefined) return;
+    patch({ isLoading: true, error: null, closedMissing: null });
     try {
-      const q = await getNextQuestion(topicId);
-      setCurrentQuestion(q);
-      setSelectedChoiceId(null);
-      setFeedback(null);
-      if (q.time_limit_seconds) {
-        setTimeLeft(q.time_limit_seconds);
-      } else {
-        setTimeLeft(null);
+      const question = await getNextQuestion(topicId);
+      patch({
+        question,
+        selectedChoiceId: null,
+        verdict: null,
+        explanation: "",
+        isLoading: false,
+      });
+    } catch (error) {
+      const response = (error as { response?: { status?: number; data?: { reason?: string } } }).response;
+      if (response?.status === 403) {
+        patch({ closedMissing: closedTopicMissing(error), isLoading: false });
+        return;
       }
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        if (err.response?.data?.reason === 'no_questions') {
-          setNoQuestions(true);
-        } else {
-          setSessionComplete(true);
-        }
-      } else {
-        setError(err instanceof Error ? err : new Error(err?.response?.data?.detail || err?.message || 'Failed to fetch question'));
+      if (response?.status === 404) {
+        patch({
+          isLoading: false,
+          hasNoQuestions: response.data?.reason === "no_questions",
+          isComplete: response.data?.reason !== "no_questions",
+        });
+        return;
       }
-    } finally {
-      setIsLoading(false);
+      patch({ isLoading: false, error: error instanceof Error ? error : new Error("request failed") });
     }
-  }, [topicId]);
+  }, [topicId, patch]);
 
-
-  // Initial fetch
   useEffect(() => {
-    if (topicId) {
-      fetchNext();
-    }
-  }, [fetchNext, topicId]);
+    void load();
+  }, [load]);
 
-  const handleSelection = useCallback((id: number) => {
-    if (!isSubmitting && feedback === null) {
-      setSelectedChoiceId(id);
-    }
-  }, [isSubmitting, feedback]);
+  const select = useCallback((choiceId: number) => {
+    setState((previous) =>
+      previous.verdict === null && !previous.isSubmitting
+        ? { ...previous, selectedChoiceId: choiceId }
+        : previous,
+    );
+  }, []);
 
-  const handleSubmit = useCallback(async (forcedChoiceId?: number) => {
-    const activeChoiceId = forcedChoiceId !== undefined ? forcedChoiceId : selectedChoiceId;
-    if (activeChoiceId === null || !currentQuestion || isSubmitting) return;
-    
-    setIsSubmitting(true);
-    setError(null);
+  const submit = useCallback(async () => {
+    const { question, selectedChoiceId, verdict, isSubmitting, pMastery } = state;
+    if (!question || selectedChoiceId === null || verdict !== null || isSubmitting) return;
+
+    patch({ isSubmitting: true, error: null });
     try {
-      const response: SubmissionResponse = await submitAnswer(currentQuestion.id, activeChoiceId);
-      
-      // Update UI state immediately to show correct/incorrect color feedback
-      setFeedback(response.is_correct ? 'correct' : 'incorrect');
-      setIsReviewRepeat(response.source === 'review_repeat');
-
-      // The crucial UX 1.5 second delay
-      setTimeout(() => {
-        if (response.next_question) {
-           setCurrentQuestion(response.next_question);
-           setSelectedChoiceId(null);
-           setFeedback(null);
-           if (response.next_question.time_limit_seconds) {
-             setTimeLeft(response.next_question.time_limit_seconds);
-           } else {
-             setTimeLeft(null);
-           }
-        } else {
-           setSessionComplete(true);
-        }
-        setIsSubmitting(false);
-      }, 1500);
-      
-    } catch (err: any) {
-      setError(err instanceof Error ? err : new Error(err?.message || 'Failed to submit answer'));
-      setIsSubmitting(false);
-    }
-  }, [currentQuestion, selectedChoiceId, isSubmitting]);
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (timeLeft === null || sessionComplete || feedback !== null || isLoading) return;
-
-    if (timeLeft <= 0) {
-      toast.error("Time's up! Submitting answer...");
-      const fallbackChoice = selectedChoiceId !== null 
-        ? selectedChoiceId 
-        : (currentQuestion?.choices[0]?.id || null);
-      
-      if (fallbackChoice !== null) {
-        handleSubmit(fallbackChoice);
+      const result: SubmissionResponse = await submitAnswer(question.id, selectedChoiceId);
+      nextRef.current = result.next_question;
+      patch({
+        verdict: result.is_correct ? "correct" : "incorrect",
+        explanation: result.explanation,
+        status: result.status,
+        pBefore: pMastery,
+        pMastery: result.p_mastery,
+        accuracy: result.accuracy,
+        attempts: result.attempts,
+        openedTopics: result.opened_topics ?? [],
+        isReviewRepeat: result.source === "review_repeat",
+        isSubmitting: false,
+      });
+      // Other pages must not keep the previous status.
+      invalidate();
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 403) {
+        patch({ closedMissing: closedTopicMissing(error), isSubmitting: false });
+        return;
       }
-      return;
+      patch({
+        isSubmitting: false,
+        error: error instanceof Error ? error : new Error("request failed"),
+      });
     }
+  }, [state, patch, invalidate]);
 
-    const timerInterval = setInterval(() => {
-      setTimeLeft(prev => (prev !== null ? prev - 1 : null));
-    }, 1000);
+  /** Moves on only when the learner asks; the explanation stays until then. */
+  const advance = useCallback(() => {
+    const next = nextRef.current;
+    nextRef.current = null;
+    if (next) {
+      patch({
+        question: next,
+        selectedChoiceId: null,
+        verdict: null,
+        explanation: "",
+        openedTopics: [],
+        isReviewRepeat: false,
+      });
+    } else {
+      patch({ isComplete: true, question: null, verdict: null });
+    }
+  }, [patch]);
 
-    return () => clearInterval(timerInterval);
-  }, [timeLeft, sessionComplete, feedback, isLoading, selectedChoiceId, currentQuestion, handleSubmit]);
-
-  return {
-    currentQuestion,
-    selectedChoiceId,
-    isSubmitting,
-    feedback,
-    sessionComplete,
-    noQuestions,
-    isLoading,
-    error,
-    timeLeft,
-    isReviewRepeat,
-    handleSelection,
-    handleSubmit,
-  };
+  return { ...state, select, submit, advance, reload: load };
 };
 
+export default useAdaptiveQuiz;
