@@ -8,9 +8,11 @@ import Profile from "@/pages/Profile";
 import i18n from "@/lib/i18n";
 
 /**
- * D42: the consent card states the four facts the learner needs, including
- * the one that is easy to leave out — withdrawing applies to future exports
- * and does not rewrite files already produced.
+ * D42 and D46: the consent card states the six facts the learner needs,
+ * including the two that are easy to leave out — withdrawing applies to
+ * future exports and does not rewrite files already produced, and deleting
+ * the account while consent is active keeps the answers without the name or
+ * the email (D11).
  */
 
 const { getConsent, setConsent, getMeSummary } = vi.hoisted(() => ({
@@ -80,6 +82,12 @@ describe("the consent card (D42)", () => {
     expect(
       screen.getByText(/allaqachon olingan fayllar o‘zgarmaydi/),
     ).toBeInTheDocument();
+    // D46: what deletion does to the answers, so "I delete my account and it
+    // is all gone" is not left as a reasonable assumption.
+    expect(
+      screen.getByText(/javoblaringiz ism va emailsiz tadqiqot uchun saqlanib qoladi/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/avval rozilikni bekor qiling/)).toBeInTheDocument();
   });
 
   it("offers consent when there is none and withdrawal when there is", async () => {

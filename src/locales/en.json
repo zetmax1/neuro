@@ -270,6 +270,7 @@
     "anonymous": "Your name and email do not appear: an export carries only a random marker.",
     "optional": "Not required: without consent you still use the whole platform.",
     "revoke": "You can withdraw at any time. Withdrawing keeps you out of future exports; files already produced are not changed.",
+    "deleted_account": "If you delete your account while consent is active, your answers are kept for the research without your name or email. If you would rather they were not, withdraw consent first.",
     "given": "Consent given",
     "not_given": "No consent given",
     "since": "since {{date}}",

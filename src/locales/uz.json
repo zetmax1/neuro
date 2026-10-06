@@ -270,6 +270,7 @@
     "anonymous": "Ismingiz va email'ingiz chiqmaydi: eksportda faqat tasodifiy belgi bo‘ladi.",
     "optional": "Majburiy emas: rozilik bermasangiz ham tizimdan to‘liq foydalanasiz.",
     "revoke": "Istalgan vaqtda bekor qilishingiz mumkin. Bekor qilish keyingi eksportlardan chiqaradi; allaqachon olingan fayllar o‘zgarmaydi.",
+    "deleted_account": "Rozilik faol bo‘lgan holda hisobingizni o‘chirsangiz, javoblaringiz ism va emailsiz tadqiqot uchun saqlanib qoladi. Buni istamasangiz, avval rozilikni bekor qiling.",
     "given": "Rozilik berilgan",
     "not_given": "Rozilik berilmagan",
     "since": "{{date}} dan",

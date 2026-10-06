@@ -191,6 +191,7 @@ const ConsentCard = () => {
           <li>{t("consent.anonymous")}</li>
           <li>{t("consent.optional")}</li>
           <li>{t("consent.revoke")}</li>
+          <li>{t("consent.deleted_account")}</li>
         </ul>
 
         <Button
