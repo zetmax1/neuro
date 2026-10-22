@@ -207,8 +207,10 @@ export const CurriculumBuilder: React.FC = () => {
     );
   }
 
-  const isStaff = user?.is_staff || user?.role === "admin";
-  if (!user || !isStaff) {
+  // The same rule as RoleRoute (D15): the role the API reports. `is_staff`
+  // would turn away every instructor who is in the Instructor group only.
+  const canBuild = user?.role === "instructor" || user?.role === "admin";
+  if (!user || !canBuild) {
     return <Navigate to="/" replace />;
   }
 
