@@ -28,3 +28,6 @@ arms_cache/
 
 # Local code graph (graphify)
 graphify-out/
+
+# Local environment (Vite); .env.example is the tracked template
+.env
